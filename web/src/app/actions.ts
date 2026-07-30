@@ -1,5 +1,7 @@
 "use server";
 
+import fs from "node:fs";
+import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { supabase, isMocked } from "@/lib/supabase";
 
@@ -55,46 +57,94 @@ export interface PrepBrief {
   email_draft?: string;
 }
 
-// In-memory mock storage for development/fallback if Supabase envs are not defined
-let mockFounders: Founder[] = [
-  {
-    id: "maya-lin-id",
-    full_name: "Maya Lin",
-    company_name: "Compass Labs",
-    company_stage: "Seed",
-    industry: "Developer Tools",
-    bio: "Developing open-source agent evaluation and testing frameworks.",
-    tech_stack: "TypeScript, Python, FastAPI",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "alex-chen-id",
-    full_name: "Alex Chen",
-    company_name: "Owl Search",
-    company_stage: "Series A",
-    industry: "Developer Infrastructure",
-    bio: "Building RRF search engines and pgvector index optimizations.",
-    tech_stack: "Rust, PostgreSQL, Go",
-    created_at: new Date().toISOString(),
-  }
-];
+// Persisted Mock Database JSON Configuration
+const MOCK_DB_FILE = path.join(process.cwd(), "mock-db.json");
 
-let mockTouchpoints: Touchpoint[] = [];
-let mockTimelineEvents: TimelineEvent[] = [
-  {
-    id: "event-1",
-    founder_id: "maya-lin-id",
-    event_type: "research",
-    summary: "Discovered v2 release post with MCP protocol support on their GitHub blog.",
-    open_loops: ["Review MCP benchmark performance metrics"],
-    promises: [],
-    occurred_at: new Date(Date.now() - 86400000).toISOString(),
+function getMockDb(): {
+  founders: Founder[];
+  touchpoints: Touchpoint[];
+  timelineEvents: TimelineEvent[];
+} {
+  try {
+    if (fs.existsSync(MOCK_DB_FILE)) {
+      const rawData = fs.readFileSync(MOCK_DB_FILE, "utf8");
+      return JSON.parse(rawData);
+    }
+  } catch (e) {
+    console.error("Failed to read mock-db.json file persistence:", e);
   }
-];
+
+  // Initial seed structures
+  const initialData = {
+    founders: [
+      {
+        id: "maya-lin-id",
+        full_name: "Maya Lin",
+        company_name: "Compass Labs",
+        company_stage: "Seed",
+        industry: "Developer Tools",
+        bio: "Developing open-source agent evaluation and testing frameworks.",
+        tech_stack: "TypeScript, Python, FastAPI",
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: "alex-chen-id",
+        full_name: "Alex Chen",
+        company_name: "Owl Search",
+        company_stage: "Series A",
+        industry: "Developer Infrastructure",
+        bio: "Building RRF search engines and pgvector index optimizations.",
+        tech_stack: "Rust, PostgreSQL, Go",
+        created_at: new Date().toISOString(),
+      }
+    ],
+    touchpoints: [],
+    timelineEvents: [
+      {
+        id: "event-1",
+        founder_id: "maya-lin-id",
+        event_type: "research",
+        summary: "Discovered v2 release post with MCP protocol support on their GitHub blog.",
+        open_loops: ["Review MCP benchmark performance metrics"],
+        promises: [],
+        occurred_at: new Date(Date.now() - 86400000).toISOString(),
+      }
+    ]
+  };
+
+  saveMockDb(initialData);
+  return initialData;
+}
+
+function saveMockDb(data: {
+  founders: Founder[];
+  touchpoints: Touchpoint[];
+  timelineEvents: TimelineEvent[];
+}) {
+  try {
+    fs.writeFileSync(MOCK_DB_FILE, JSON.stringify(data, null, 2), "utf8");
+  } catch (e) {
+    console.error("Failed to write mock-db.json file persistence:", e);
+  }
+}
+
+// Input sanitization rule to prevent script injection or database syntax exploits
+function sanitizeString(str: string, maxLength: number): string {
+  if (!str) return "";
+  // Strip HTML / script tags
+  let clean = str.replace(/<[^>]*>/g, "");
+  // Strip common SQL comment sequences
+  clean = clean.replace(/--/g, "").replace(/;/g, "");
+  // Limit character length to prevent buffer overloads
+  if (clean.length > maxLength) {
+    clean = clean.substring(0, maxLength);
+  }
+  return clean.trim();
+}
 
 export async function getFounders(): Promise<Founder[]> {
   if (isMocked) {
-    return mockFounders;
+    return getMockDb().founders;
   }
 
   const { data, error } = await supabase
@@ -104,7 +154,7 @@ export async function getFounders(): Promise<Founder[]> {
 
   if (error) {
     console.error("Error fetching founders:", error);
-    return mockFounders; // Fallback
+    return getMockDb().founders; // Fallback
   }
   return data || [];
 }
@@ -114,17 +164,20 @@ export async function getFounderDetails(founderId: string): Promise<{
   touchpoints: Touchpoint[];
   timelineEvents: TimelineEvent[];
 }> {
+  const cleanId = sanitizeString(founderId, 100);
+
   if (isMocked) {
-    const founder = mockFounders.find((f) => f.id === founderId) || null;
-    const touchpoints = mockTouchpoints.filter((t) => t.founder_id === founderId);
-    const timelineEvents = mockTimelineEvents.filter((te) => te.founder_id === founderId);
+    const db = getMockDb();
+    const founder = db.founders.find((f) => f.id === cleanId) || null;
+    const touchpoints = db.touchpoints.filter((t) => t.founder_id === cleanId);
+    const timelineEvents = db.timelineEvents.filter((te) => te.founder_id === cleanId);
     return { founder, touchpoints, timelineEvents };
   }
 
   const { data: founder, error: founderError } = await supabase
     .from("founders")
     .select("*")
-    .eq("id", founderId)
+    .eq("id", cleanId)
     .single();
 
   if (founderError) {
@@ -135,13 +188,13 @@ export async function getFounderDetails(founderId: string): Promise<{
   const { data: touchpoints } = await supabase
     .from("workspace_touchpoints")
     .select("*")
-    .eq("founder_id", founderId)
+    .eq("founder_id", cleanId)
     .order("created_at", { ascending: false });
 
   const { data: timelineEvents } = await supabase
     .from("founder_timeline_events")
     .select("*")
-    .eq("founder_id", founderId)
+    .eq("founder_id", cleanId)
     .order("occurred_at", { ascending: false });
 
   return {
@@ -159,22 +212,43 @@ export async function createFounder(formData: {
   techStack?: string;
   bio: string;
 }): Promise<Founder | null> {
+  // Input validations and bounds checks
+  const fullName = sanitizeString(formData.fullName, 100);
+  const companyName = sanitizeString(formData.companyName, 100);
+  const companyStage = sanitizeString(formData.companyStage, 50);
+  const industry = sanitizeString(formData.industry, 100);
+  const techStack = formData.techStack ? sanitizeString(formData.techStack, 200) : "";
+  const bio = sanitizeString(formData.bio, 1000);
+
+  if (fullName.length < 2) {
+    throw new Error("Full name must be at least 2 characters.");
+  }
+  if (companyName.length < 1) {
+    throw new Error("Company name must be at least 1 character.");
+  }
+  const allowedStages = ["Pre-Seed", "Seed", "Series A", "Series B+"];
+  if (!allowedStages.includes(companyStage)) {
+    throw new Error("Invalid company stage.");
+  }
+
   const newFounder = {
-    full_name: formData.fullName,
-    company_name: formData.companyName,
-    company_stage: formData.companyStage,
-    industry: formData.industry,
-    tech_stack: formData.techStack,
-    bio: formData.bio,
+    full_name: fullName,
+    company_name: companyName,
+    company_stage: companyStage,
+    industry: industry,
+    tech_stack: techStack,
+    bio: bio,
   };
 
   if (isMocked) {
+    const db = getMockDb();
     const created: Founder = {
       id: `founder-${Math.random().toString(36).substr(2, 9)}`,
       ...newFounder,
       created_at: new Date().toISOString(),
     };
-    mockFounders.unshift(created);
+    db.founders.unshift(created);
+    saveMockDb(db);
     tryRevalidatePath("/");
     return created;
   }
@@ -199,31 +273,41 @@ export async function saveTouchpoint(formData: {
   content: string;
   sourceType: string;
 }): Promise<Touchpoint | null> {
+  const founderId = sanitizeString(formData.founderId, 100);
+  const content = sanitizeString(formData.content, 50000);
+  const sourceType = sanitizeString(formData.sourceType, 50);
+
+  if (!content) {
+    throw new Error("Touchpoint content cannot be empty.");
+  }
+
   const newTouchpoint = {
-    founder_id: formData.founderId,
-    content: formData.content,
-    source_type: formData.sourceType,
+    founder_id: founderId,
+    content: content,
+    source_type: sourceType,
   };
 
   if (isMocked) {
+    const db = getMockDb();
     const created: Touchpoint = {
       id: `touchpoint-${Math.random().toString(36).substr(2, 9)}`,
       ...newTouchpoint,
       created_at: new Date().toISOString(),
     };
-    mockTouchpoints.unshift(created);
+    db.touchpoints.unshift(created);
 
     // Auto-create a parsed timeline event from the touchpoint text simulation
     const simulatedEvent: TimelineEvent = {
       id: `event-${Math.random().toString(36).substr(2, 9)}`,
-      founder_id: formData.founderId,
+      founder_id: founderId,
       event_type: "meeting",
-      summary: `Logged ${formData.sourceType} touchpoint: ${formData.content.slice(0, 80)}...`,
-      open_loops: formData.content.includes("promise") ? ["Review next steps promised in meeting"] : [],
-      promises: formData.content.includes("follow up") ? ["Follow up on discussed topics"] : [],
+      summary: `Logged ${sourceType} touchpoint: ${content.slice(0, 80)}...`,
+      open_loops: content.includes("promise") ? ["Review next steps promised in meeting"] : [],
+      promises: content.includes("follow up") ? ["Follow up on discussed topics"] : [],
       occurred_at: new Date().toISOString(),
     };
-    mockTimelineEvents.unshift(simulatedEvent);
+    db.timelineEvents.unshift(simulatedEvent);
+    saveMockDb(db);
 
     tryRevalidatePath("/");
     return created;
@@ -245,6 +329,8 @@ export async function saveTouchpoint(formData: {
 }
 
 export async function generatePrepBrief(founderId: string): Promise<PrepBrief> {
+  const cleanId = sanitizeString(founderId, 100);
+
   // Simulates a structured conversation prep brief generation
   const observations: VerifiedObservation[] = [
     {
@@ -271,7 +357,7 @@ export async function generatePrepBrief(founderId: string): Promise<PrepBrief> {
   ];
 
   return {
-    founder_id: founderId,
+    founder_id: cleanId,
     observations,
     suggested_questions: suggestedQuestions,
     ways_to_be_helpful: waysToBeHelpful,

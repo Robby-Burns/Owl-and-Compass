@@ -1,0 +1,69 @@
+{
+  "founders": [
+    {
+      "id": "founder-qs1zxwv5s",
+      "full_name": "Test Founder",
+      "company_name": "Test Co",
+      "company_stage": "Pre-Seed",
+      "industry": "BioTech",
+      "tech_stack": "Python, AWS",
+      "bio": "Developing custom lab automation systems.",
+      "created_at": "2026-07-30T18:03:04.589Z"
+    },
+    {
+      "id": "maya-lin-id",
+      "full_name": "Maya Lin",
+      "company_name": "Compass Labs",
+      "company_stage": "Seed",
+      "industry": "Developer Tools",
+      "bio": "Developing open-source agent evaluation and testing frameworks.",
+      "tech_stack": "TypeScript, Python, FastAPI",
+      "created_at": "2026-07-30T18:03:04.586Z"
+    },
+    {
+      "id": "alex-chen-id",
+      "full_name": "Alex Chen",
+      "company_name": "Owl Search",
+      "company_stage": "Series A",
+      "industry": "Developer Infrastructure",
+      "bio": "Building RRF search engines and pgvector index optimizations.",
+      "tech_stack": "Rust, PostgreSQL, Go",
+      "created_at": "2026-07-30T18:03:04.587Z"
+    }
+  ],
+  "touchpoints": [
+    {
+      "id": "touchpoint-kos5bjje4",
+      "founder_id": "founder-qs1zxwv5s",
+      "content": "Discussed promise of vector indexing follow up",
+      "source_type": "email",
+      "created_at": "2026-07-30T18:03:04.592Z"
+    }
+  ],
+  "timelineEvents": [
+    {
+      "id": "event-3az4r8ekm",
+      "founder_id": "founder-qs1zxwv5s",
+      "event_type": "meeting",
+      "summary": "Logged email touchpoint: Discussed promise of vector indexing follow up...",
+      "open_loops": [
+        "Review next steps promised in meeting"
+      ],
+      "promises": [
+        "Follow up on discussed topics"
+      ],
+      "occurred_at": "2026-07-30T18:03:04.592Z"
+    },
+    {
+      "id": "event-1",
+      "founder_id": "maya-lin-id",
+      "event_type": "research",
+      "summary": "Discovered v2 release post with MCP protocol support on their GitHub blog.",
+      "open_loops": [
+        "Review MCP benchmark performance metrics"
+      ],
+      "promises": [],
+      "occurred_at": "2026-07-29T18:03:04.587Z"
+    }
+  ]
+}
