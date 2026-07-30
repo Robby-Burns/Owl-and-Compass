@@ -57,8 +57,44 @@ export interface PrepBrief {
   email_draft?: string;
 }
 
-// Persisted Mock Database JSON Configuration
+// Persistent Mock Database Configuration
 const MOCK_DB_FILE = path.join(process.cwd(), "mock-db.json");
+
+// Simple async lock mechanism to serialize reads and writes and prevent race conditions
+class AsyncLock {
+  private promise: Promise<void> = Promise.resolve();
+
+  async acquire(): Promise<() => void> {
+    let release: () => void = () => {};
+    const nextPromise = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const currentPromise = this.promise;
+    this.promise = currentPromise.then(() => nextPromise);
+    await currentPromise;
+    return release;
+  }
+}
+
+const dbLock = new AsyncLock();
+
+// Simple in-memory rate limiting tracker (15 requests per 10 seconds per category)
+const rateLimitTracker = new Map<string, number[]>();
+
+function checkRateLimit(actionName: string, maxRequests = 15, windowMs = 10000) {
+  const now = Date.now();
+  const timestamps = rateLimitTracker.get(actionName) || [];
+  
+  // Filter out expired timestamps
+  const activeTimestamps = timestamps.filter((ts) => now - ts < windowMs);
+  
+  if (activeTimestamps.length >= maxRequests) {
+    throw new Error(`Rate limit exceeded for action: ${actionName}. Please wait and try again.`);
+  }
+  
+  activeTimestamps.push(now);
+  rateLimitTracker.set(actionName, activeTimestamps);
+}
 
 function getMockDb(): {
   founders: Founder[];
@@ -128,13 +164,26 @@ function saveMockDb(data: {
   }
 }
 
+// HTML Entity Escaper to strictly prevent stored XSS attacks
+function escapeHtml(str: string): string {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;")
+    .replace(/\//g, "&#x2F;")
+    .replace(/=/g, "&#x3D;");
+}
+
 // Input sanitization rule to prevent script injection or database syntax exploits
 function sanitizeString(str: string, maxLength: number): string {
   if (!str) return "";
-  // Strip HTML / script tags
-  let clean = str.replace(/<[^>]*>/g, "");
-  // Strip common SQL comment sequences
-  clean = clean.replace(/--/g, "").replace(/;/g, "");
+  // Strip common SQL comment sequences first
+  let clean = str.replace(/--/g, "").replace(/;/g, "");
+  // Escape HTML entities to neutralize all tag rendering entirely
+  clean = escapeHtml(clean);
   // Limit character length to prevent buffer overloads
   if (clean.length > maxLength) {
     clean = clean.substring(0, maxLength);
@@ -143,8 +192,15 @@ function sanitizeString(str: string, maxLength: number): string {
 }
 
 export async function getFounders(): Promise<Founder[]> {
+  checkRateLimit("getFounders", 60, 10000);
+  
   if (isMocked) {
-    return getMockDb().founders;
+    const release = await dbLock.acquire();
+    try {
+      return getMockDb().founders;
+    } finally {
+      release();
+    }
   }
 
   const { data, error } = await supabase
@@ -154,7 +210,12 @@ export async function getFounders(): Promise<Founder[]> {
 
   if (error) {
     console.error("Error fetching founders:", error);
-    return getMockDb().founders; // Fallback
+    const release = await dbLock.acquire();
+    try {
+      return getMockDb().founders;
+    } finally {
+      release();
+    }
   }
   return data || [];
 }
@@ -164,14 +225,20 @@ export async function getFounderDetails(founderId: string): Promise<{
   touchpoints: Touchpoint[];
   timelineEvents: TimelineEvent[];
 }> {
+  checkRateLimit("getFounderDetails", 60, 10000);
   const cleanId = sanitizeString(founderId, 100);
 
   if (isMocked) {
-    const db = getMockDb();
-    const founder = db.founders.find((f) => f.id === cleanId) || null;
-    const touchpoints = db.touchpoints.filter((t) => t.founder_id === cleanId);
-    const timelineEvents = db.timelineEvents.filter((te) => te.founder_id === cleanId);
-    return { founder, touchpoints, timelineEvents };
+    const release = await dbLock.acquire();
+    try {
+      const db = getMockDb();
+      const founder = db.founders.find((f) => f.id === cleanId) || null;
+      const touchpoints = db.touchpoints.filter((t) => t.founder_id === cleanId);
+      const timelineEvents = db.timelineEvents.filter((te) => te.founder_id === cleanId);
+      return { founder, touchpoints, timelineEvents };
+    } finally {
+      release();
+    }
   }
 
   const { data: founder, error: founderError } = await supabase
@@ -212,6 +279,8 @@ export async function createFounder(formData: {
   techStack?: string;
   bio: string;
 }): Promise<Founder | null> {
+  checkRateLimit("createFounder", 15, 10000);
+
   // Input validations and bounds checks
   const fullName = sanitizeString(formData.fullName, 100);
   const companyName = sanitizeString(formData.companyName, 100);
@@ -241,16 +310,21 @@ export async function createFounder(formData: {
   };
 
   if (isMocked) {
-    const db = getMockDb();
-    const created: Founder = {
-      id: `founder-${Math.random().toString(36).substr(2, 9)}`,
-      ...newFounder,
-      created_at: new Date().toISOString(),
-    };
-    db.founders.unshift(created);
-    saveMockDb(db);
-    tryRevalidatePath("/");
-    return created;
+    const release = await dbLock.acquire();
+    try {
+      const db = getMockDb();
+      const created: Founder = {
+        id: `founder-${Math.random().toString(36).substr(2, 9)}`,
+        ...newFounder,
+        created_at: new Date().toISOString(),
+      };
+      db.founders.unshift(created);
+      saveMockDb(db);
+      tryRevalidatePath("/");
+      return created;
+    } finally {
+      release();
+    }
   }
 
   const { data, error } = await supabase
@@ -273,6 +347,8 @@ export async function saveTouchpoint(formData: {
   content: string;
   sourceType: string;
 }): Promise<Touchpoint | null> {
+  checkRateLimit("saveTouchpoint", 30, 10000);
+
   const founderId = sanitizeString(formData.founderId, 100);
   const content = sanitizeString(formData.content, 50000);
   const sourceType = sanitizeString(formData.sourceType, 50);
@@ -288,29 +364,34 @@ export async function saveTouchpoint(formData: {
   };
 
   if (isMocked) {
-    const db = getMockDb();
-    const created: Touchpoint = {
-      id: `touchpoint-${Math.random().toString(36).substr(2, 9)}`,
-      ...newTouchpoint,
-      created_at: new Date().toISOString(),
-    };
-    db.touchpoints.unshift(created);
+    const release = await dbLock.acquire();
+    try {
+      const db = getMockDb();
+      const created: Touchpoint = {
+        id: `touchpoint-${Math.random().toString(36).substr(2, 9)}`,
+        ...newTouchpoint,
+        created_at: new Date().toISOString(),
+      };
+      db.touchpoints.unshift(created);
 
-    // Auto-create a parsed timeline event from the touchpoint text simulation
-    const simulatedEvent: TimelineEvent = {
-      id: `event-${Math.random().toString(36).substr(2, 9)}`,
-      founder_id: founderId,
-      event_type: "meeting",
-      summary: `Logged ${sourceType} touchpoint: ${content.slice(0, 80)}...`,
-      open_loops: content.includes("promise") ? ["Review next steps promised in meeting"] : [],
-      promises: content.includes("follow up") ? ["Follow up on discussed topics"] : [],
-      occurred_at: new Date().toISOString(),
-    };
-    db.timelineEvents.unshift(simulatedEvent);
-    saveMockDb(db);
+      // Auto-create a parsed timeline event from the touchpoint text simulation
+      const simulatedEvent: TimelineEvent = {
+        id: `event-${Math.random().toString(36).substr(2, 9)}`,
+        founder_id: founderId,
+        event_type: "meeting",
+        summary: `Logged ${sourceType} touchpoint: ${content.slice(0, 80)}...`,
+        open_loops: content.includes("promise") ? ["Review next steps promised in meeting"] : [],
+        promises: content.includes("follow up") ? ["Follow up on discussed topics"] : [],
+        occurred_at: new Date().toISOString(),
+      };
+      db.timelineEvents.unshift(simulatedEvent);
+      saveMockDb(db);
 
-    tryRevalidatePath("/");
-    return created;
+      tryRevalidatePath("/");
+      return created;
+    } finally {
+      release();
+    }
   }
 
   const { data, error } = await supabase
@@ -329,6 +410,7 @@ export async function saveTouchpoint(formData: {
 }
 
 export async function generatePrepBrief(founderId: string): Promise<PrepBrief> {
+  checkRateLimit("generatePrepBrief", 30, 10000);
   const cleanId = sanitizeString(founderId, 100);
 
   // Simulates a structured conversation prep brief generation

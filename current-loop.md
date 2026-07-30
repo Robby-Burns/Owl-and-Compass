@@ -61,3 +61,42 @@
 - Run `npm test` inside `web/` to confirm 5/5 Server Actions integration tests pass.
 - Run `npx tsc --noEmit` inside `web/` to verify TypeScript compile is clean.
 - Run `npx next build` inside `web/` to verify Next.js production compilation.
+# Checker Audit – Loop 2
+
+**Role:** Checker
+**Story:** Story 1.4 — Next.js Server Actions & Prep Brief UI Components
+**Loop:** 2
+**Risk:** LOW
+**Scenario cap:** 3
+**Mandatory lenses:** Skeptic, QA Edge, Spec Alignment
+
+---
+
+## Quick Verification
+- Executed `npm test` in `web/`: all 5 tests passed.
+- Ran `npx tsc --noEmit`: TypeScript compilation clean.
+- Ran `npx next build`: production build succeeded without errors.
+- **Result:** QUICK VERIFICATION **PASSED**.
+
+---
+
+## Adversarial Review (Three Failure Scenarios)
+
+1. **Unauthenticated Server Action Access**
+   - **Issue:** Server Actions `createFounder`, `saveTouchpoint`, and `generatePrepBrief` are exposed without any authentication or rate‑limiting checks.
+   - **Repro:** Using `curl` or Postman, send a POST request to `/api/actions/createFounder` with a valid payload repeatedly (e.g., 1000 times) from an unauthenticated client. The server accepts all requests, creating thousands of dummy founder records.
+   - **Impact:** Resource exhaustion, potential denial‑of‑service, and uncontrolled data growth in the mock DB or Supabase instance.
+
+2. **Potential XSS via Sanitization Gaps**
+   - **Issue:** `sanitizeString` strips HTML tags but does not escape characters that could be interpreted when rendered with `dangerouslySetInnerHTML` or similar patterns in React components.
+   - **Repro:** Submit a founder `name` value of `<svg onload=alert(1)>`. The server stores the string; when the dashboard renders the name using `dangerouslySetInnerHTML`, the SVG executes, triggering an alert.
+   - **Impact:** Cross‑site scripting, compromising user sessions and data confidentiality.
+
+3. **Race Condition in Mock JSON Store**
+   - **Issue:** The fallback `web/mock-db.json` writes are performed with `fs.writeFile` without file‑level locking. Concurrent Server Action invocations can interleave writes, causing lost updates.
+   - **Repro:** From two terminals, simultaneously invoke `saveTouchpoint` for the same founder with different notes. After both complete, only one note appears in the persisted JSON.
+   - **Impact:** Data loss, inconsistency for users, and misleading research briefs.
+
+---
+
+*End of audit.*
