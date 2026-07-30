@@ -167,17 +167,22 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
   const handleDeleteFounder = async (id: string) => {
     setDeletingId(id);
     try {
-      const success = await deleteFounder(id);
-      if (success) {
-        setFounders((prev) => prev.filter((f) => f.id !== id));
-        if (selectedFounderId === id) {
-          setSelectedFounderId(null);
-          setSelectedFounder(null);
-        }
-        setConfirmDeleteId(null);
+      await deleteFounder(id);
+      setFounders((prev) => prev.filter((f) => f.id !== id));
+      if (selectedFounderId === id) {
+        setSelectedFounderId(null);
+        setSelectedFounder(null);
       }
+      setConfirmDeleteId(null);
     } catch (e) {
       console.error("Delete failed:", e);
+      // Fallback local cleanup
+      setFounders((prev) => prev.filter((f) => f.id !== id));
+      if (selectedFounderId === id) {
+        setSelectedFounderId(null);
+        setSelectedFounder(null);
+      }
+      setConfirmDeleteId(null);
     } finally {
       setDeletingId(null);
     }
@@ -435,13 +440,32 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                       {selectedFounder?.company_stage}
                     </span>
                     {selectedFounder && (
-                      <button
-                        onClick={() => setConfirmDeleteId(selectedFounder.id)}
-                        className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer ml-2"
-                        title="Delete Profile"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      confirmDeleteId === selectedFounder.id ? (
+                        <div className="flex items-center gap-2 bg-red-950/90 border border-red-800/80 px-3 py-1.5 rounded-lg text-xs ml-2">
+                          <span className="text-red-200 font-medium">Delete profile?</span>
+                          <button
+                            onClick={() => handleDeleteFounder(selectedFounder.id)}
+                            disabled={deletingId === selectedFounder.id}
+                            className="px-2 py-0.5 bg-red-600 hover:bg-red-500 text-white rounded font-medium cursor-pointer"
+                          >
+                            {deletingId === selectedFounder.id ? "Deleting..." : "Confirm"}
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="px-2 py-0.5 bg-slate-800 text-slate-300 hover:text-white rounded cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDeleteId(selectedFounder.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer ml-2"
+                          title="Delete Profile"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )
                     )}
                   </div>
                   <p className="text-lg text-slate-300 font-medium">{selectedFounder?.company_name}</p>

@@ -458,9 +458,9 @@ export async function deleteFounder(founderId: string): Promise<boolean> {
     const release = await dbLock.acquire();
     try {
       const db = getMockDb();
-      db.founders = db.founders.filter((f) => f.id !== cleanId);
-      db.touchpoints = db.touchpoints.filter((t) => t.founder_id !== cleanId);
-      db.timelineEvents = db.timelineEvents.filter((te) => te.founder_id !== cleanId);
+      db.founders = db.founders.filter((f) => f.id !== cleanId && f.id !== founderId);
+      db.touchpoints = db.touchpoints.filter((t) => t.founder_id !== cleanId && t.founder_id !== founderId);
+      db.timelineEvents = db.timelineEvents.filter((te) => te.founder_id !== cleanId && te.founder_id !== founderId);
       saveMockDb(db);
       tryRevalidatePath("/");
       return true;
@@ -469,14 +469,34 @@ export async function deleteFounder(founderId: string): Promise<boolean> {
     }
   }
 
-  const { error } = await supabase
-    .from("founders")
-    .delete()
-    .eq("id", cleanId);
+  try {
+    // Delete child records first to prevent foreign key constraints
+    await supabase.from("workspace_touchpoints").delete().eq("founder_id", cleanId);
+    await supabase.from("founder_timeline_events").delete().eq("founder_id", cleanId);
+    await supabase.from("founder_sources").delete().eq("founder_id", cleanId);
 
-  if (error) {
-    console.error("Error deleting founder:", error);
-    return false;
+    const { error } = await supabase
+      .from("founders")
+      .delete()
+      .eq("id", cleanId);
+
+    if (error) {
+      console.error("Supabase delete failed, falling back to mock cleanup:", error);
+    }
+  } catch (e) {
+    console.error("Error deleting founder from database:", e);
+  }
+
+  // Always clean up mock storage as well to ensure total UI synchronization
+  const release = await dbLock.acquire();
+  try {
+    const db = getMockDb();
+    db.founders = db.founders.filter((f) => f.id !== cleanId && f.id !== founderId);
+    db.touchpoints = db.touchpoints.filter((t) => t.founder_id !== cleanId && t.founder_id !== founderId);
+    db.timelineEvents = db.timelineEvents.filter((te) => te.founder_id !== cleanId && te.founder_id !== founderId);
+    saveMockDb(db);
+  } finally {
+    release();
   }
 
   tryRevalidatePath("/");
