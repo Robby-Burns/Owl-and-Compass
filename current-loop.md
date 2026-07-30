@@ -76,3 +76,65 @@
 **Lenses applied:** Skeptic, QA Edge, Spec Alignment
 
 **Verdict:** PASS — Required lenses applied, zero CRITICAL/WARN scenarios found. Build and test execution verified cleanly across Python backend and Next.js frontend.
+
+---
+
+# Current Loop State — Story 1.4 Loop 3 Handoff
+
+**Story:** Story 1.4 — Candidate Discovery & Founder Deletion Enhancements
+**Role:** Builder
+**Loop:** 3
+**Risk Level:** LOW
+**Status:** Ready for Check (Loop 3)
+
+---
+
+## 1. What Was Built (Candidate Discovery & Founder Deletion)
+- **Candidate Discovery UI & Server Action (`discoverCandidates`)**: Added a dual-tab sidebar ("Saved Profiles" vs "Find Candidates") in `web/src/app/FounderDashboard.tsx` allowing users to search public founder signals by topic, tech stack, industry, or company stage, with 1-click importing into the saved workspace.
+- **Founder Deletion (`deleteFounder`)**: Added a cascade deletion server action `deleteFounder(id)` in `web/src/app/actions.ts` equipped with rate-limiting and sanitization, coupled with an inline confirmation UI (`Delete profile? [Confirm] [Cancel]`) on founder cards and profile headers.
+- **Docker Host Binding (`HOSTNAME=0.0.0.0`)**: Updated `Dockerfile` to export `HOSTNAME="0.0.0.0"` and dynamic `$PORT` for Railway health check compatibility.
+- **Integration Test Expansion**: Added unit tests in `web/src/app/actions.test.ts` covering founder deletion and candidate discovery.
+
+---
+
+## 2. Acceptance Criteria Verification
+- **AC 1 (Candidate Discovery):** PASSED — Public signal discovery query search implemented with 1-click import into workspace.
+- **AC 2 (Founder Deletion):** PASSED — Profile deletion removes founder record, touchpoints, and timeline events cleanly with confirmation safeguard.
+- **AC 3 (Container Binding):** PASSED — Dockerfile binds standalone server to `0.0.0.0:$PORT`.
+- **AC 4 (Integration Test Suite):** PASSED — All 9/9 integration tests pass successfully.
+
+### Raw Test Runner Output (`npm test` in `web/`):
+```
+> web@0.1.0 test
+> node --import tsx --test src/app/actions.test.ts
+
+▶ Next.js Server Actions integration suite
+  ✔ should retrieve default founders list (1.9731ms)
+  ✔ should create a new founder profile with XSS protection (2.3888ms)
+  ✔ should log and save a touchpoint note (2.1219ms)
+  ✔ should handle concurrent writes without race conditions (3.46ms)
+  ✔ should generate structured prep briefs (0.6702ms)
+  ✔ should delete a founder profile cleanly (2.3903ms)
+  ✔ should discover founder candidates by criteria (0.4884ms)
+  ✔ should trigger rate limiting on abuse (1.3326ms)
+✔ Next.js Server Actions integration suite (16.5506ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 716.8783
+```
+
+---
+
+## 3. Key Assumptions & Choices
+- Inline delete confirmation UI prevents accidental button clicks.
+- Candidate discovery maps seamlessly into the `createFounder` workflow for 1-click importing.
+
+---
+
+## 4. Known Limitations & Deferred Work
+- None.
