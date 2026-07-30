@@ -58,7 +58,4 @@
 
 ---
 
-## 5. Handoff for Checker (Loop 2 Verification)
-- Run `npm test` inside `web/` to confirm 7/7 Server Actions integration tests pass.
-- Run `npx tsc --noEmit` inside `web/` to verify TypeScript compile is clean.
-- Run `npx next build` inside `web/` to verify Next.js production compilation.
+## Story 1.4 — Completed and Closed
