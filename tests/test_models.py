@@ -2,7 +2,7 @@
 
 import pytest
 from pydantic import ValidationError
-from src.models import (
+from owl_and_compass.models import (
     ExtractedEntities,
     PrepBrief,
     Settings,

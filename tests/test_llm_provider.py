@@ -1,7 +1,7 @@
 """Tests for LLM provider resolution in Owl & Compass."""
 
 import os
-from src.llm_provider import resolve_llm_config, PROVIDER_BASE_URLS
+from owl_and_compass.llm_provider import resolve_llm_config, PROVIDER_BASE_URLS
 
 
 def test_resolve_google_gemini_key(monkeypatch):

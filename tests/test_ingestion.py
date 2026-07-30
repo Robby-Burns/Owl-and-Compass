@@ -3,14 +3,14 @@
 import asyncio
 import time
 import pytest
-from src.ingestion import (
+from owl_and_compass.ingestion import (
     CHUNK_SIZE_CHARS,
     MAX_PAYLOAD_CHARS,
     append_timeline_event,
     extract_touchpoint_entities,
     normalize_touchpoint_input,
 )
-from src.models import ExtractedEntities
+from owl_and_compass.models import ExtractedEntities
 
 
 def test_normalize_touchpoint_input_small():

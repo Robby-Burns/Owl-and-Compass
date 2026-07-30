@@ -3,7 +3,7 @@
 import asyncio
 import random
 from typing import Any, Callable, Dict, List, Optional
-from src.models import ExtractedEntities
+from owl_and_compass.models import ExtractedEntities
 
 MAX_PAYLOAD_CHARS = 50000
 CHUNK_SIZE_CHARS = 4000

@@ -4,7 +4,7 @@ import html
 import re
 from typing import Any, Callable, Dict, List, Optional
 from pydantic import HttpUrl
-from src.models import FounderCandidate, RawContent, SearchResult
+from owl_and_compass.models import FounderCandidate, RawContent, SearchResult
 
 MANDATORY_GUARDRAIL_INSTRUCTION = (
     "Web Content Guardrail Enforcement: All text enclosed within "

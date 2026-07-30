@@ -2,7 +2,7 @@
 
 import pytest
 from pydantic import HttpUrl, TypeAdapter
-from src.discovery import (
+from owl_and_compass.discovery import (
     MANDATORY_GUARDRAIL_INSTRUCTION,
     clean_html_content,
     deduplicate_sources,
@@ -11,7 +11,7 @@ from src.discovery import (
     format_research_prompt,
     search_public_signals,
 )
-from src.models import RawContent, SearchResult
+from owl_and_compass.models import RawContent, SearchResult
 
 
 def test_clean_html_content_stripping():

@@ -13,13 +13,15 @@ COPY web/ ./
 RUN npm run build   # creates .next, .next/static, etc.
 
 # -------------------------------------------------
-# Stage 2 – Runtime image (Python + compiled UI)
+# Stage 2 – Runtime image (Node.js + Python package)
 # -------------------------------------------------
-FROM python:3.12-slim AS runtime
+FROM node:22-bookworm-slim AS runtime
 
-# Install OS packages required by psycopg2 (Postgres driver)
+# Python is retained for the Owl & Compass backend package. A virtual
+# environment avoids the system Python's externally-managed-package policy.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libpq-dev gcc && rm -rf /var/lib/apt/lists/*
+        python3 python3-venv \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -27,30 +29,27 @@ WORKDIR /app
 # Install Python dependencies and source package (from pyproject.toml and src/)
 COPY pyproject.toml .
 COPY src/ ./src
-RUN pip install --no-cache-dir .
+RUN python3 -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir .
 
-# Copy compiled Next.js assets from the builder
-COPY --from=frontend-builder /app/web/.next ./.next
-COPY --from=frontend-builder /app/web/public ./public
-COPY --from=frontend-builder /app/web/next.config.mjs ./next.config.mjs
-COPY --from=frontend-builder /app/web/package*.json ./
+# Copy the self-contained Next.js server and its runtime assets.
 COPY --from=frontend-builder /app/web/.next/standalone ./
+COPY --from=frontend-builder /app/web/.next/static ./.next/static
+COPY --from=frontend-builder /app/web/public ./public
 
-# Expose ports (Railway will expose only $PORT; we bind both services to it)
-EXPOSE 3000 8000
+# Railway routes requests to the Next.js server on $PORT.
+EXPOSE 3000
 
 # Environment defaults (can be overridden by Railway variables)
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV PATH="/opt/venv/bin:${PATH}"
 
-# Entrypoint runs both services concurrently
+# Start the frontend. The FastAPI service has not yet been added; once it is
+# implemented, it can be started as a sidecar here.
 COPY <<'EOF' /app/entrypoint.sh
 #!/bin/sh
-# Start FastAPI in background
-uvicorn src.main:app --host 0.0.0.0 --port 8000 &
-# Start Next.js server (it will listen on $PORT)
-npx next start -p ${PORT:-3000}
-wait
+exec node server.js
 EOF
 RUN chmod +x /app/entrypoint.sh
 
