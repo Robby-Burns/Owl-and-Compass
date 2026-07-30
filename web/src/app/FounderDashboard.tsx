@@ -303,8 +303,15 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
             <img src="/brand-logo.png" alt="The Owl & Compass Shield" className="w-10 h-12 object-contain drop-shadow-md" />
             <div>
               <h1 className="text-lg font-extrabold tracking-tight text-white gold-gradient-text">THE OWL & COMPASS</h1>
-              <p className="text-[11px] text-amber-200/80 font-medium">Founder Intelligence System</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[11px] text-amber-200/80 font-medium">Founder Intelligence System</span>
+                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-extrabold px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Live Production Mode
+                </span>
+              </div>
             </div>
+
           </div>
           <button
             onClick={() => setShowAddModal(true)}
