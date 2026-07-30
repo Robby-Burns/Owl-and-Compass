@@ -5,7 +5,9 @@ import {
   saveTouchpoint,
   getFounders,
   getFounderDetails,
-  generatePrepBrief
+  generatePrepBrief,
+  deleteFounder,
+  discoverCandidates
 } from "./actions";
 
 test("Next.js Server Actions integration suite", async (t) => {
@@ -100,6 +102,30 @@ test("Next.js Server Actions integration suite", async (t) => {
     assert.strictEqual(brief.founder_id, targetFounder.id);
     assert.ok(brief.observations.length >= 2);
     assert.ok(brief.suggested_questions.length >= 3);
+  });
+
+  await t.test("should delete a founder profile cleanly", async () => {
+    const created = await createFounder({
+      fullName: "ToDelete Founder",
+      companyName: "DeleteCo",
+      companyStage: "Seed",
+      industry: "Testing",
+      bio: "Temporary founder to test deletion.",
+    });
+
+    assert.ok(created);
+    const result = await deleteFounder(created.id);
+    assert.strictEqual(result, true);
+
+    const list = await getFounders();
+    assert.strictEqual(list.some((f) => f.id === created.id), false);
+  });
+
+  await t.test("should discover founder candidates by criteria", async () => {
+    const candidates = await discoverCandidates({ query: "AI" });
+    assert.ok(Array.isArray(candidates));
+    assert.ok(candidates.length >= 1);
+    assert.ok(candidates[0].full_name);
   });
 
   await t.test("should trigger rate limiting on abuse", async () => {

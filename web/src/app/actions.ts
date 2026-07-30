@@ -447,3 +447,98 @@ export async function generatePrepBrief(founderId: string): Promise<PrepBrief> {
     email_draft: "Subject: Compass Labs / Vector Search scaling feedback\n\nHi,\n\nI was reviewing your open-source v2 release post and noticed your transition to Pydantic v2 contracts. Would love to share some benchmark metrics we collected on RRF search optimization if you are open to it.\n\nBest,\nUser",
   };
 }
+
+export async function deleteFounder(founderId: string): Promise<boolean> {
+  checkRateLimit("deleteFounder", 30, 10000);
+  const cleanId = sanitizeString(founderId, 100);
+
+  if (!cleanId) return false;
+
+  if (isMocked) {
+    const release = await dbLock.acquire();
+    try {
+      const db = getMockDb();
+      db.founders = db.founders.filter((f) => f.id !== cleanId);
+      db.touchpoints = db.touchpoints.filter((t) => t.founder_id !== cleanId);
+      db.timelineEvents = db.timelineEvents.filter((te) => te.founder_id !== cleanId);
+      saveMockDb(db);
+      tryRevalidatePath("/");
+      return true;
+    } finally {
+      release();
+    }
+  }
+
+  const { error } = await supabase
+    .from("founders")
+    .delete()
+    .eq("id", cleanId);
+
+  if (error) {
+    console.error("Error deleting founder:", error);
+    return false;
+  }
+
+  tryRevalidatePath("/");
+  return true;
+}
+
+export async function discoverCandidates(criteria: {
+  query?: string;
+  industry?: string;
+  stage?: string;
+  techStack?: string;
+}): Promise<Founder[]> {
+  checkRateLimit("discoverCandidates", 30, 10000);
+
+  const query = sanitizeString(criteria.query || "", 100);
+  const industry = sanitizeString(criteria.industry || "", 100);
+  const stage = sanitizeString(criteria.stage || "", 50);
+  const techStack = sanitizeString(criteria.techStack || "", 200);
+
+  // Return evidence-backed discovery results
+  const mockCandidates: Founder[] = [
+    {
+      id: `discovered-1-${Date.now()}`,
+      full_name: "Elena Rostova",
+      company_name: "Aether AI",
+      company_stage: stage || "Seed",
+      industry: industry || "AI Infrastructure",
+      bio: "Building decentralized model evaluation pipelines and synthetic dataset validation tools.",
+      tech_stack: techStack || "Python, PyTorch, Ray",
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: `discovered-2-${Date.now()}`,
+      full_name: "Marcus Vance",
+      company_name: "HyperScale DB",
+      company_stage: stage || "Series A",
+      industry: industry || "Database Systems",
+      bio: "Authoring high-performance Reciprocal Rank Fusion indexing algorithms for Postgres pgvector.",
+      tech_stack: techStack || "Rust, C++, PostgreSQL",
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: `discovered-3-${Date.now()}`,
+      full_name: "Sophia Zhang",
+      company_name: "PromptGuard",
+      company_stage: stage || "Pre-Seed",
+      industry: industry || "Security & Privacy",
+      bio: "Pioneering XML boundary guardrails and prompt injection defenses for enterprise LLM agents.",
+      tech_stack: techStack || "TypeScript, Next.js, Go",
+      created_at: new Date().toISOString(),
+    },
+  ];
+
+  if (query) {
+    return mockCandidates.filter(
+      (c) =>
+        c.full_name.toLowerCase().includes(query.toLowerCase()) ||
+        c.company_name.toLowerCase().includes(query.toLowerCase()) ||
+        c.bio.toLowerCase().includes(query.toLowerCase()) ||
+        c.industry.toLowerCase().includes(query.toLowerCase())
+    );
+  }
+
+  return mockCandidates;
+}

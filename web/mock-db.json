@@ -1,6 +1,16 @@
 {
   "founders": [
     {
+      "id": "founder-zp74l3nwn",
+      "full_name": "&lt;svg onload&#x3D;alert(1)&gt; Test Name",
+      "company_name": "Test Co",
+      "company_stage": "Pre-Seed",
+      "industry": "BioTech",
+      "tech_stack": "Python, AWS",
+      "bio": "Developing custom lab automation systems.",
+      "created_at": "2026-07-30T22:03:53.507Z"
+    },
+    {
       "id": "founder-vtiirhrn6",
       "full_name": "&lt;svg onload&#x3D;alert(1)&gt; Test Name",
       "company_name": "Test Co",
@@ -82,6 +92,34 @@
     }
   ],
   "touchpoints": [
+    {
+      "id": "touchpoint-9xkpxckfi",
+      "founder_id": "founder-zp74l3nwn",
+      "content": "Concurrent touchpoint C",
+      "source_type": "note",
+      "created_at": "2026-07-30T22:03:53.514Z"
+    },
+    {
+      "id": "touchpoint-fycjqq0y8",
+      "founder_id": "founder-zp74l3nwn",
+      "content": "Concurrent touchpoint B",
+      "source_type": "note",
+      "created_at": "2026-07-30T22:03:53.513Z"
+    },
+    {
+      "id": "touchpoint-zagfucm83",
+      "founder_id": "founder-zp74l3nwn",
+      "content": "Concurrent touchpoint A",
+      "source_type": "note",
+      "created_at": "2026-07-30T22:03:53.512Z"
+    },
+    {
+      "id": "touchpoint-c5fxjudsh",
+      "founder_id": "founder-zp74l3nwn",
+      "content": "Discussed promise of vector indexing follow up",
+      "source_type": "email",
+      "created_at": "2026-07-30T22:03:53.510Z"
+    },
     {
       "id": "touchpoint-cg4ltjlhw",
       "founder_id": "founder-vtiirhrn6",
@@ -231,6 +269,46 @@
     }
   ],
   "timelineEvents": [
+    {
+      "id": "event-cl455bt9u",
+      "founder_id": "founder-zp74l3nwn",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint C...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-07-30T22:03:53.514Z"
+    },
+    {
+      "id": "event-1hxnfc3mk",
+      "founder_id": "founder-zp74l3nwn",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint B...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-07-30T22:03:53.513Z"
+    },
+    {
+      "id": "event-jlnwxnmym",
+      "founder_id": "founder-zp74l3nwn",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint A...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-07-30T22:03:53.512Z"
+    },
+    {
+      "id": "event-ampkskxjg",
+      "founder_id": "founder-zp74l3nwn",
+      "event_type": "meeting",
+      "summary": "Logged email touchpoint: Discussed promise of vector indexing follow up...",
+      "open_loops": [
+        "Review next steps promised in meeting"
+      ],
+      "promises": [
+        "Follow up on discussed topics"
+      ],
+      "occurred_at": "2026-07-30T22:03:53.510Z"
+    },
     {
       "id": "event-l8tsh129w",
       "founder_id": "founder-vtiirhrn6",

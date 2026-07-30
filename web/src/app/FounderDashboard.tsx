@@ -17,7 +17,10 @@ import {
   HelpCircle,
   FileText,
   AlertCircle,
-  X
+  X,
+  Trash2,
+  Search,
+  Sparkles
 } from "lucide-react";
 import {
   Founder,
@@ -27,7 +30,9 @@ import {
   createFounder,
   saveTouchpoint,
   getFounderDetails,
-  generatePrepBrief
+  generatePrepBrief,
+  deleteFounder,
+  discoverCandidates
 } from "@/app/actions";
 
 interface FounderDashboardProps {
@@ -38,6 +43,15 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
   const [founders, setFounders] = useState<Founder[]>(initialFounders);
   const [selectedFounderId, setSelectedFounderId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"timeline" | "brief">("timeline");
+  
+  // Discovery and Filter States
+  const [sidebarTab, setSidebarTab] = useState<"saved" | "discover">("saved");
+  const [searchFilter, setSearchFilter] = useState("");
+  const [discoveryQuery, setDiscoveryQuery] = useState("");
+  const [discoveredCandidates, setDiscoveredCandidates] = useState<Founder[]>([]);
+  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   
   // Selected founder detailed data
   const [selectedFounder, setSelectedFounder] = useState<Founder | null>(null);
@@ -150,6 +164,58 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
     }
   };
 
+  const handleDeleteFounder = async (id: string) => {
+    setDeletingId(id);
+    try {
+      const success = await deleteFounder(id);
+      if (success) {
+        setFounders((prev) => prev.filter((f) => f.id !== id));
+        if (selectedFounderId === id) {
+          setSelectedFounderId(null);
+          setSelectedFounder(null);
+        }
+        setConfirmDeleteId(null);
+      }
+    } catch (e) {
+      console.error("Delete failed:", e);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleSearchCandidates = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setIsDiscovering(true);
+    try {
+      const results = await discoverCandidates({ query: discoveryQuery });
+      setDiscoveredCandidates(results);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsDiscovering(false);
+    }
+  };
+
+  const handleImportCandidate = async (candidate: Founder) => {
+    try {
+      const created = await createFounder({
+        fullName: candidate.full_name,
+        companyName: candidate.company_name,
+        companyStage: candidate.company_stage,
+        industry: candidate.industry,
+        techStack: candidate.tech_stack || "",
+        bio: candidate.bio,
+      });
+      if (created) {
+        setFounders([created, ...founders]);
+        setSidebarTab("saved");
+        handleSelectFounder(created.id);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleCopyText = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
     setCopiedField(field);
@@ -178,31 +244,175 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
           </button>
         </div>
 
-        {/* Founder Lists */}
+        {/* Sidebar Navigation Tabs */}
+        <div className="px-4 pt-3 pb-2 flex items-center gap-2 border-b border-slate-800">
+          <button
+            onClick={() => setSidebarTab("saved")}
+            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              sidebarTab === "saved"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "bg-slate-900/60 text-slate-300 hover:text-white"
+            }`}
+          >
+            <User className="w-3.5 h-3.5" />
+            Saved Profiles ({founders.length})
+          </button>
+          <button
+            onClick={() => {
+              setSidebarTab("discover");
+              if (discoveredCandidates.length === 0) handleSearchCandidates();
+            }}
+            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              sidebarTab === "discover"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "bg-slate-900/60 text-slate-300 hover:text-white"
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-blue-300" />
+            Find Candidates
+          </button>
+        </div>
+
+        {/* Founder Lists or Candidate Discovery */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          <p className="text-xs font-semibold text-slate-300 px-2 uppercase tracking-wider">Founders Workspace</p>
-          {founders.map((f) => (
-            <div
-              key={f.id}
-              onClick={() => handleSelectFounder(f.id)}
-              className={`p-4 rounded-xl cursor-pointer transition-all flex flex-col gap-1 ${
-                selectedFounderId === f.id
-                  ? "bg-blue-600/10 border border-blue-500/30 shadow-lg shadow-blue-500/5"
-                  : "bg-slate-900/40 border border-slate-800 hover:bg-slate-900/80"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-white">{f.full_name}</span>
-                <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-200 font-medium">
-                  {f.company_stage}
-                </span>
+          {sidebarTab === "saved" ? (
+            <>
+              <div className="relative mb-2">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  placeholder="Filter saved founders..."
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
+                  className="w-full pl-9 pr-3 py-1.5 bg-slate-900/80 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
+                />
               </div>
-              <div className="text-sm text-slate-300 font-medium">{f.company_name}</div>
-              <div className="text-xs text-slate-200 flex items-center gap-2 mt-1">
-                <span className="truncate">{f.industry}</span>
+
+              {founders
+                .filter(
+                  (f) =>
+                    f.full_name.toLowerCase().includes(searchFilter.toLowerCase()) ||
+                    f.company_name.toLowerCase().includes(searchFilter.toLowerCase()) ||
+                    f.industry.toLowerCase().includes(searchFilter.toLowerCase())
+                )
+                .map((f) => (
+                  <div
+                    key={f.id}
+                    onClick={() => handleSelectFounder(f.id)}
+                    className={`p-4 rounded-xl cursor-pointer transition-all flex flex-col gap-1 relative group ${
+                      selectedFounderId === f.id
+                        ? "bg-blue-600/10 border border-blue-500/30 shadow-lg shadow-blue-500/5"
+                        : "bg-slate-900/40 border border-slate-800 hover:bg-slate-900/80"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-white">{f.full_name}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-200 font-medium">
+                          {f.company_stage}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setConfirmDeleteId(f.id);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-all cursor-pointer"
+                          title="Delete Founder"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="text-sm text-slate-300 font-medium">{f.company_name}</div>
+                    <div className="text-xs text-slate-200 flex items-center gap-2 mt-1">
+                      <span className="truncate">{f.industry}</span>
+                    </div>
+
+                    {confirmDeleteId === f.id && (
+                      <div className="mt-2 p-2 rounded-lg bg-red-950/80 border border-red-800/80 flex items-center justify-between gap-2 text-xs">
+                        <span className="text-red-200 font-medium">Delete profile?</span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteFounder(f.id);
+                            }}
+                            disabled={deletingId === f.id}
+                            className="px-2 py-0.5 bg-red-600 hover:bg-red-500 text-white rounded font-medium cursor-pointer"
+                          >
+                            {deletingId === f.id ? "Deleting..." : "Confirm"}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setConfirmDeleteId(null);
+                            }}
+                            className="px-2 py-0.5 bg-slate-800 text-slate-300 hover:text-white rounded cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+            </>
+          ) : (
+            <div className="space-y-4">
+              <form onSubmit={handleSearchCandidates} className="space-y-2">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    placeholder="Search by topic, stage, tech..."
+                    value={discoveryQuery}
+                    onChange={(e) => setDiscoveryQuery(e.target.value)}
+                    className="w-full pl-9 pr-3 py-1.5 bg-slate-900/80 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isDiscovering}
+                  className="w-full py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  {isDiscovering ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Searching Signals...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Search Public Signals
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <div className="space-y-3 pt-1">
+                <p className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Discovered Candidates</p>
+                {discoveredCandidates.map((cand) => (
+                  <div key={cand.id} className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-white text-sm">{cand.full_name}</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-blue-600/10 text-blue-400 border border-blue-500/20">
+                        {cand.company_stage}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-300 font-medium">{cand.company_name} · {cand.industry}</div>
+                    <p className="text-xs text-slate-400 line-clamp-2">{cand.bio}</p>
+                    <button
+                      onClick={() => handleImportCandidate(cand)}
+                      className="w-full mt-1 py-1 rounded bg-slate-800 hover:bg-blue-600 hover:text-white text-blue-400 text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Add to Workspace
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
+          )}
         </div>
       </aside>
 
@@ -224,6 +434,15 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                     <span className="text-xs px-2.5 py-1 rounded-full bg-blue-600/10 text-blue-400 border border-blue-500/20">
                       {selectedFounder?.company_stage}
                     </span>
+                    {selectedFounder && (
+                      <button
+                        onClick={() => setConfirmDeleteId(selectedFounder.id)}
+                        className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer ml-2"
+                        title="Delete Profile"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                   <p className="text-lg text-slate-300 font-medium">{selectedFounder?.company_name}</p>
                   <p className="text-sm text-slate-200 max-w-2xl">{selectedFounder?.bio}</p>
