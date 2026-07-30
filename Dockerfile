@@ -43,12 +43,14 @@ EXPOSE 3000
 # Environment defaults (can be overridden by Railway variables)
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 ENV PATH="/opt/venv/bin:${PATH}"
 
-# Start the frontend. The FastAPI service has not yet been added; once it is
-# implemented, it can be started as a sidecar here.
+# Start the frontend listening on 0.0.0.0:$PORT for Railway
 COPY <<'EOF' /app/entrypoint.sh
 #!/bin/sh
+export HOSTNAME="0.0.0.0"
+export PORT="${PORT:-3000}"
 exec node server.js
 EOF
 RUN chmod +x /app/entrypoint.sh
