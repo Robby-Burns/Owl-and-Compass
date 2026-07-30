@@ -18,6 +18,7 @@ export interface Founder {
   full_name: string;
   company_name: string;
   company_stage: string;
+  company_description?: string;
   industry: string;
   bio: string;
   tech_stack?: string;
@@ -118,6 +119,7 @@ function getMockDb(): {
         full_name: "Maya Lin",
         company_name: "Compass Labs",
         company_stage: "Seed",
+        company_description: "AI-powered relationship intelligence platform for venture partners and founders. Automates public signal discovery, memory timeline extraction, and zero-hallucination meeting prep briefs.",
         industry: "Developer Tools",
         bio: "Developing open-source agent evaluation and testing frameworks.",
         tech_stack: "TypeScript, Python, FastAPI",
@@ -128,12 +130,14 @@ function getMockDb(): {
         full_name: "Alex Chen",
         company_name: "Owl Search",
         company_stage: "Series A",
+        company_description: "High-throughput streaming vector indexing engine for LLM agent memory pipelines. Provides real-time Reciprocal Rank Fusion (RRF) search and PostgreSQL embedding sync.",
         industry: "Developer Infrastructure",
         bio: "Building RRF search engines and pgvector index optimizations.",
         tech_stack: "Rust, PostgreSQL, Go",
         created_at: new Date().toISOString(),
       }
     ],
+
     touchpoints: [],
     timelineEvents: [
       {
@@ -296,6 +300,7 @@ export async function createFounder(formData: {
   fullName: string;
   companyName: string;
   companyStage: string;
+  companyDescription?: string;
   industry: string;
   techStack?: string;
   bio: string;
@@ -306,6 +311,7 @@ export async function createFounder(formData: {
   const fullName = sanitizeString(formData.fullName, 100);
   const companyName = sanitizeString(formData.companyName, 100);
   const companyStage = sanitizeString(formData.companyStage || "Seed", 50);
+  const companyDescription = formData.companyDescription ? sanitizeString(formData.companyDescription, 1000) : "";
   const industry = sanitizeString(formData.industry || "Technology", 100);
   const techStack = formData.techStack ? sanitizeString(formData.techStack, 200) : "";
   const bio = sanitizeString(formData.bio || "", 1000);
@@ -321,6 +327,7 @@ export async function createFounder(formData: {
     full_name: fullName,
     company_name: companyName,
     company_stage: companyStage || "Seed",
+    company_description: companyDescription || bio || `${companyName} operates in the ${industry} sector.`,
     industry: industry || "Technology",
     tech_stack: techStack,
     bio: bio,
@@ -532,49 +539,83 @@ export async function discoverCandidates(criteria: {
   const stage = sanitizeString(criteria.stage || "", 50);
   const techStack = sanitizeString(criteria.techStack || "", 200);
 
-  // Return evidence-backed discovery results
-  const mockCandidates: Founder[] = [
+  // Diverse candidates database
+  const baseCandidates: Array<Omit<Founder, "id" | "created_at">> = [
     {
-      id: `discovered-1-${Date.now()}`,
       full_name: "Elena Rostova",
       company_name: "Aether AI",
-      company_stage: stage || "Seed",
-      industry: industry || "AI Infrastructure",
+      company_stage: "Seed",
+      industry: "AI Infrastructure",
       bio: "Building decentralized model evaluation pipelines and synthetic dataset validation tools.",
-      tech_stack: techStack || "Python, PyTorch, Ray",
-      created_at: new Date().toISOString(),
+      tech_stack: "Python, PyTorch, Ray, FastAPI",
     },
     {
-      id: `discovered-2-${Date.now()}`,
       full_name: "Marcus Vance",
       company_name: "HyperScale DB",
-      company_stage: stage || "Series A",
-      industry: industry || "Database Systems",
-      bio: "Authoring high-performance Reciprocal Rank Fusion indexing algorithms for Postgres pgvector.",
-      tech_stack: techStack || "Rust, C++, PostgreSQL",
-      created_at: new Date().toISOString(),
+      company_stage: "Series A",
+      industry: "Database Systems",
+      bio: "Authoring high-performance Reciprocal Rank Fusion (RRF) search indexing algorithms for pgvector.",
+      tech_stack: "Rust, C++, PostgreSQL, Go",
     },
     {
-      id: `discovered-3-${Date.now()}`,
       full_name: "Sophia Zhang",
       company_name: "PromptGuard",
-      company_stage: stage || "Pre-Seed",
-      industry: industry || "Security & Privacy",
+      company_stage: "Pre-Seed",
+      industry: "Security & Privacy",
       bio: "Pioneering XML boundary guardrails and prompt injection defenses for enterprise LLM agents.",
-      tech_stack: techStack || "TypeScript, Next.js, Go",
-      created_at: new Date().toISOString(),
+      tech_stack: "TypeScript, Next.js, Go, Python",
+    },
+    {
+      full_name: "Devon Reed",
+      company_name: "KubeScale",
+      company_stage: "Seed",
+      industry: "Cloud Infrastructure",
+      bio: "Creating autonomous Kubernetes autoscaling & cost optimization for multi-cloud deployments.",
+      tech_stack: "Go, Kubernetes, Terraform, Prometheus",
+    },
+    {
+      full_name: "Aria Montgomery",
+      company_name: "BioSynthetix",
+      company_stage: "Series A",
+      industry: "Biotech & Health",
+      bio: "Accelerating computational protein design and enzyme folding using generative foundation models.",
+      tech_stack: "Python, PyTorch, AlphaFold, AWS",
+    },
+    {
+      full_name: "Tariq Mansoor",
+      company_name: "LedgerMesh",
+      company_stage: "Seed",
+      industry: "Fintech",
+      bio: "Engineering real-time zero-knowledge proof verification engines for cross-border settlements.",
+      tech_stack: "Rust, WebAssembly, TypeScript",
     },
   ];
 
+  const timestamp = Date.now();
+  const mockCandidates: Founder[] = baseCandidates.map((c, index) => ({
+    id: `discovered-${index + 1}-${timestamp}`,
+    ...c,
+    company_stage: stage || c.company_stage,
+    industry: industry || c.industry,
+    tech_stack: techStack || c.tech_stack,
+    created_at: new Date().toISOString(),
+  }));
+
   if (query) {
-    return mockCandidates.filter(
+    const q = query.toLowerCase();
+    const filtered = mockCandidates.filter(
       (c) =>
-        c.full_name.toLowerCase().includes(query.toLowerCase()) ||
-        c.company_name.toLowerCase().includes(query.toLowerCase()) ||
-        c.bio.toLowerCase().includes(query.toLowerCase()) ||
-        c.industry.toLowerCase().includes(query.toLowerCase())
+        c.full_name.toLowerCase().includes(q) ||
+        c.company_name.toLowerCase().includes(q) ||
+        c.bio.toLowerCase().includes(q) ||
+        c.industry.toLowerCase().includes(q) ||
+        (c.tech_stack && c.tech_stack.toLowerCase().includes(q)) ||
+        c.company_stage.toLowerCase().includes(q)
     );
+    // If exact query yields results, return them; otherwise fallback to top matches
+    return filtered.length > 0 ? filtered : mockCandidates.slice(0, 3);
   }
 
   return mockCandidates;
 }
+

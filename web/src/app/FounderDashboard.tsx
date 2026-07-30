@@ -20,7 +20,10 @@ import {
   X,
   Trash2,
   Search,
-  Sparkles
+  Sparkles,
+  Building2,
+  Sun,
+  Moon
 } from "lucide-react";
 import {
   Founder,
@@ -40,8 +43,10 @@ interface FounderDashboardProps {
 }
 
 export default function FounderDashboard({ initialFounders }: FounderDashboardProps) {
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [founders, setFounders] = useState<Founder[]>(initialFounders);
   const [selectedFounderId, setSelectedFounderId] = useState<string | null>(null);
+
   const [activeTab, setActiveTab] = useState<"timeline" | "brief">("timeline");
   
   // Discovery and Filter States
@@ -70,6 +75,7 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
     fullName: "",
     companyName: "",
     companyStage: "Seed",
+    companyDescription: "",
     industry: "",
     techStack: "",
     bio: "",
@@ -87,20 +93,20 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
 
   // Handlers
   const handleSelectFounder = async (id: string) => {
-    setSelectedFounderId(id);
     setSelectedCandidate(null);
     setSelectedCandidateBrief(null);
+    setSelectedFounderId(id);
     setLoadingDetails(true);
-    setPrepBrief(null); // Clear previous brief
-    setActiveTab("timeline");
-
     try {
       const details = await getFounderDetails(id);
-      setSelectedFounder(details.founder);
-      setTouchpoints(details.touchpoints);
-      setTimelineEvents(details.timelineEvents);
-    } catch (e) {
-      console.error(e);
+      if (details) {
+        setSelectedFounder(details.founder);
+        setTouchpoints(details.touchpoints);
+        setTimelineEvents(details.timelineEvents);
+        setPrepBrief(null);
+      }
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoadingDetails(false);
     }
@@ -135,6 +141,7 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
             fullName: "",
             companyName: "",
             companyStage: "Seed",
+            companyDescription: "",
             industry: "",
             techStack: "",
             bio: "",
@@ -255,7 +262,7 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
   };
 
   return (
-    <div className="flex flex-col min-h-screen w-full lg:flex-row">
+    <div className={`flex flex-col min-h-screen w-full lg:flex-row ${theme}`}>
       {/* Sidebar List */}
       <aside className="w-full lg:w-96 flex flex-col glass-panel border-r border-[#C69C35]/30 shrink-0">
         {/* Brand Header */}
@@ -267,14 +274,24 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
               <p className="text-[11px] text-amber-200/80 font-medium">Founder Intelligence System</p>
             </div>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="p-2 rounded-lg bg-[#C69C35]/20 hover:bg-[#C69C35] text-[#F5D77F] hover:text-[#1D2228] border border-[#C69C35]/40 transition-all cursor-pointer"
-            title="Add New Founder"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="p-2 rounded-lg bg-[#C69C35]/20 hover:bg-[#C69C35] text-[#F5D77F] hover:text-[#1D2228] border border-[#C69C35]/40 transition-all cursor-pointer flex items-center justify-center"
+              title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
+            >
+              {theme === "dark" ? <Sun className="w-5 h-5 text-amber-300" /> : <Moon className="w-5 h-5 text-amber-600" />}
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="p-2 rounded-lg bg-[#C69C35]/20 hover:bg-[#C69C35] text-[#F5D77F] hover:text-[#1D2228] border border-[#C69C35]/40 transition-all cursor-pointer"
+              title="Add New Founder"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          </div>
         </div>
+
 
         {/* Sidebar Navigation Tabs */}
         <div className="px-4 pt-3 pb-2 flex items-center gap-2 border-b border-[#C69C35]/20 bg-[#1D2228]/50">
@@ -355,10 +372,11 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                         </button>
                       </div>
                     </div>
-                    <div className="text-sm text-amber-200/90 font-medium">{f.company_name}</div>
-                    <div className="text-xs text-amber-100/70 flex items-center gap-2 mt-1">
-                      <span className="truncate">{f.industry}</span>
-                    </div>
+                    <div className="text-sm text-amber-200/90 font-bold">{f.company_name}</div>
+                    <p className="text-[11px] text-amber-100/90 line-clamp-2 bg-[#1D2228]/80 p-2 rounded-lg border border-[#C69C35]/20 mt-1 leading-relaxed">
+                      <span className="text-[#C69C35] font-extrabold">Company: </span>
+                      {f.company_description || f.bio}
+                    </p>
 
                     {confirmDeleteId === f.id && (
                       <div className="mt-2 p-2 rounded-lg bg-red-950/90 border border-red-800/80 flex items-center justify-between gap-2 text-xs">
@@ -439,8 +457,12 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                         {cand.company_stage}
                       </span>
                     </div>
-                    <div className="text-xs text-amber-200/90 font-medium">{cand.company_name} · {cand.industry}</div>
-                    <p className="text-xs text-amber-100/70 line-clamp-2">{cand.bio}</p>
+                    <div className="text-xs text-amber-200/90 font-bold">{cand.company_name} · {cand.industry}</div>
+                    <p className="text-[11px] text-amber-100/90 line-clamp-2 bg-[#1D2228]/80 p-2 rounded-lg border border-[#C69C35]/20 leading-relaxed">
+                      <span className="text-[#C69C35] font-extrabold">Business: </span>
+                      {cand.company_description || cand.bio}
+                    </p>
+
                     <div className="flex items-center justify-between pt-1">
                       <span className="text-[11px] text-[#C69C35] font-semibold flex items-center gap-1 group-hover:underline">
                         View Prep & Brief →
@@ -489,6 +511,17 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                   <h2 className="text-3xl font-extrabold tracking-tight text-white">{selectedCandidate.full_name}</h2>
                   <p className="text-lg text-amber-200/90 font-medium">{selectedCandidate.company_name} · {selectedCandidate.industry}</p>
                   <p className="text-sm text-amber-100/80 max-w-2xl">{selectedCandidate.bio}</p>
+                  
+                  {/* Company & Product Brief Box */}
+                  <div className="bg-[#1D2228] p-3.5 rounded-xl border border-[#C69C35]/30 space-y-1 mt-3 max-w-2xl">
+                    <div className="flex items-center gap-1.5 text-xs font-extrabold text-[#C69C35] uppercase tracking-wider">
+                      <Building2 className="w-4 h-4 text-[#C69C35]" />
+                      Company Overview — What It Does
+                    </div>
+                    <p className="text-xs text-amber-100/90 font-medium leading-relaxed">
+                      {selectedCandidate.company_description || `${selectedCandidate.company_name} operates in the ${selectedCandidate.industry} domain.`}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-3 justify-end shrink-0">
@@ -682,7 +715,19 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                   </div>
                   <p className="text-lg text-amber-200/90 font-medium">{selectedFounder?.company_name}</p>
                   <p className="text-sm text-amber-100/80 max-w-2xl">{selectedFounder?.bio}</p>
+
+                  {/* Company & Product Brief Box */}
+                  <div className="bg-[#1D2228] p-3.5 rounded-xl border border-[#C69C35]/30 space-y-1 mt-3 max-w-2xl">
+                    <div className="flex items-center gap-1.5 text-xs font-extrabold text-[#C69C35] uppercase tracking-wider">
+                      <Building2 className="w-4 h-4 text-[#C69C35]" />
+                      Company Overview — What It Does
+                    </div>
+                    <p className="text-xs text-amber-100/90 font-medium leading-relaxed">
+                      {selectedFounder?.company_description || `${selectedFounder?.company_name} operates in the ${selectedFounder?.industry} domain.`}
+                    </p>
+                  </div>
                 </div>
+
 
                 <div className="flex flex-col gap-3 justify-end shrink-0">
                   {selectedFounder?.tech_stack && (
@@ -1072,12 +1117,23 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
               </div>
 
               <div className="space-y-1.5">
+                <label className="text-xs font-extrabold text-amber-200/80 uppercase tracking-wider">Company Description (What the company does)</label>
+                <textarea
+                  value={newFounderData.companyDescription}
+                  onChange={(e) => setNewFounderData({ ...newFounderData, companyDescription: e.target.value })}
+                  placeholder="Describe what the company is, its core product/service, and value proposition..."
+                  rows={2}
+                  className="w-full bg-[#1D2228] border border-[#C69C35]/30 rounded-xl p-2.5 text-sm text-amber-100 focus:outline-none focus:border-[#C69C35] transition-all resize-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
                 <label className="text-xs font-extrabold text-amber-200/80 uppercase tracking-wider">Bio Excerpt</label>
                 <textarea
                   value={newFounderData.bio}
                   onChange={(e) => setNewFounderData({ ...newFounderData, bio: e.target.value })}
                   placeholder="Briefly summarize their technical focus, project, or role..."
-                  rows={3}
+                  rows={2}
                   className="w-full bg-[#1D2228] border border-[#C69C35]/30 rounded-xl p-2.5 text-sm text-amber-100 focus:outline-none focus:border-[#C69C35] transition-all resize-none"
                 />
               </div>
