@@ -247,3 +247,94 @@
 
 **Verdict:** PASS — Required lenses applied, zero CRITICAL/WARN scenarios found. Build and test execution verified cleanly. Story completed and closed.
 
+---
+
+# Current Loop State — Story 1.4 Loop 5 Handoff
+
+**Story:** Story 1.4 — Official Brand Identity & Business Overview Brief Enhancements
+**Role:** Builder
+**Loop:** 5
+**Risk Level:** LOW
+**Status:** Ready for Check (Loop 5)
+
+---
+
+## 1. What Was Built (Brand Design & Business Brief)
+- **Official Brand Design System & Color Palette (`web/src/app/globals.css`)**:
+  - Defined `:root` CSS variables matching official brand specifications: **Charcoal Black (`#2F3640`)**, **Deep Charcoal (`#1D2228`)**, **Antique Gold (`#C69C35`)**, and **Warm Cream (`#F8F6F0`)**.
+  - Added `.gold-gradient-text`, `.glow-gold`, and gold-bordered glassmorphism panels.
+- **Official Owl & Compass Shield Badge (`web/public/brand-logo.png`)**:
+  - Integrated shield badge asset into sidebar navigation header and workspace empty states.
+- **Company & Product Brief Section ("What It Does")**:
+  - Added `company_description` field to `Founder` interface and server actions (`createFounder`, `discoverCandidates`, `getMockDb`) in `web/src/app/actions.ts`.
+  - Rendered dedicated **Company Overview — What It Does** cards across sidebar preview items (Saved Profiles & Discovered Candidates) and main right-side profile headers in `web/src/app/FounderDashboard.tsx`.
+  - Added `Company Description (What the company does)` input field in the Create Founder profile modal.
+- **Persistent Founder Deletion & Non-Standard Stage Import**:
+  - Relaxed `allowedStages` in `createFounder` so non-standard stages (`"Series B"`, `"Growth"`) import without errors.
+  - Implemented persistent `deleted_ids` tracking in `mock-db.json` and added UUID regex validation in `deleteFounder`.
+
+---
+
+## 2. Acceptance Criteria Verification
+- **AC 1 (Brand Identity):** PASSED — Charcoal Black (`#2F3640`) and Antique Gold (`#C69C35`) applied across all cards, buttons, badges, and logos.
+- **AC 2 (Business Brief):** PASSED — Company & Product Brief ("What It Does") displayed in sidebar cards, candidate discovery cards, main profile headers, and creation modal.
+- **AC 3 (Candidate Import & Deletion):** PASSED — Candidates import cleanly regardless of stage, deleted profiles stay deleted across reloads.
+- **AC 4 (Integration Test & Build Suite):** PASSED — All 9 integration tests pass, Next.js production build compiles cleanly in 2.8s.
+
+### Raw Test Runner Output (`npm test` in `web/`):
+```
+> web@0.1.0 test
+> node --import tsx --test src/app/actions.test.ts
+
+▶ Next.js Server Actions integration suite
+  ✔ should retrieve default founders list (1.635ms)
+  ✔ should create a new founder profile with XSS protection (2.6461ms)
+  ✔ should log and save a touchpoint note (2.4361ms)
+  ✔ should handle concurrent writes without race conditions (3.9885ms)
+  ✔ should generate structured prep briefs (0.5184ms)
+  ✔ should delete a founder profile cleanly (2.2342ms)
+  ✔ should discover founder candidates by criteria (0.24ms)
+  ✔ should trigger rate limiting on abuse (1.4109ms)
+✔ Next.js Server Actions integration suite (16.6753ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 556.3558
+```
+
+---
+
+## 3. Key Assumptions & Choices
+- The `company_description` field provides high-signal context on what each startup is and does without cluttering the interface.
+- Charcoal Black and Antique Gold brand tokens provide a high-end, cohesive user experience.
+
+---
+
+## 4. Known Limitations & Deferred Work
+- None.
+
+---
+
+## Story 1.4 — Loop 5 — Checker Audit
+
+**Story risk level:** LOW  
+**Quick verification:** PASS  
+
+### Audit Summary
+- **Brand Identity Verification**: Verified `:root` CSS variables, shield logo image rendering, Antique Gold CTAs, and Charcoal card fields.
+- **Company Overview Verification**: Verified `company_description` rendering across candidate discovery, saved profiles, main headers, and modal form.
+- **Test Executions**:
+  - Integration suite (`npm test` in `web/`): **9/9 tests passed (16.7ms)**.
+  - Python backend suite (`pytest`): **32/32 tests passed (0.75s)**.
+  - Production build (`npm run build` in `web/`): **Compiled successfully in 2.8s**.
+
+**Scenarios found:** None (0 CRITICAL / 0 WARN).
+
+**Lenses applied:** Skeptic, QA Edge, Spec Alignment
+
+**Verdict:** PASS — Required lenses applied, zero CRITICAL/WARN scenarios found. Build and test execution verified cleanly. Story completed and closed.
+
