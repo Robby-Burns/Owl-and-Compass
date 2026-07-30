@@ -59,6 +59,11 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
   const [prepBrief, setPrepBrief] = useState<PrepBrief | null>(null);
 
+  // Selected candidate preview detailed data (for right-side panel)
+  const [selectedCandidate, setSelectedCandidate] = useState<Founder | null>(null);
+  const [selectedCandidateBrief, setSelectedCandidateBrief] = useState<PrepBrief | null>(null);
+  const [loadingCandidateBrief, setLoadingCandidateBrief] = useState(false);
+
   // Form states
   const [showAddModal, setShowAddModal] = useState(false);
   const [newFounderData, setNewFounderData] = useState({
@@ -83,6 +88,8 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
   // Handlers
   const handleSelectFounder = async (id: string) => {
     setSelectedFounderId(id);
+    setSelectedCandidate(null);
+    setSelectedCandidateBrief(null);
     setLoadingDetails(true);
     setPrepBrief(null); // Clear previous brief
     setActiveTab("timeline");
@@ -96,6 +103,21 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
       console.error(e);
     } finally {
       setLoadingDetails(false);
+    }
+  };
+
+  const handleSelectCandidate = async (cand: Founder) => {
+    setSelectedCandidate(cand);
+    setSelectedFounderId(null);
+    setSelectedFounder(null);
+    setLoadingCandidateBrief(true);
+    try {
+      const brief = await generatePrepBrief(cand.id);
+      setSelectedCandidateBrief(brief);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingCandidateBrief(false);
     }
   };
 
@@ -397,7 +419,15 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
               <div className="space-y-3 pt-1">
                 <p className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Discovered Candidates</p>
                 {discoveredCandidates.map((cand) => (
-                  <div key={cand.id} className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+                  <div
+                    key={cand.id}
+                    onClick={() => handleSelectCandidate(cand)}
+                    className={`p-3.5 rounded-xl cursor-pointer transition-all border space-y-2 group ${
+                      selectedCandidate?.id === cand.id
+                        ? "bg-blue-600/10 border-blue-500/40 shadow-lg shadow-blue-500/5 ring-1 ring-blue-500/30"
+                        : "bg-slate-900/60 border-slate-800 hover:bg-slate-900/90"
+                    }`}
+                  >
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-white text-sm">{cand.full_name}</span>
                       <span className="text-xs px-2 py-0.5 rounded bg-blue-600/10 text-blue-400 border border-blue-500/20">
@@ -406,13 +436,21 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                     </div>
                     <div className="text-xs text-slate-300 font-medium">{cand.company_name} · {cand.industry}</div>
                     <p className="text-xs text-slate-400 line-clamp-2">{cand.bio}</p>
-                    <button
-                      onClick={() => handleImportCandidate(cand)}
-                      className="w-full mt-1 py-1 rounded bg-slate-800 hover:bg-blue-600 hover:text-white text-blue-400 text-xs font-medium transition-all cursor-pointer flex items-center justify-center gap-1"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Add to Workspace
-                    </button>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[11px] text-blue-400 font-medium flex items-center gap-1 group-hover:underline">
+                        View Prep & Brief →
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleImportCandidate(cand);
+                        }}
+                        className="px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition-all cursor-pointer flex items-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" />
+                        Add
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -423,7 +461,176 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
 
       {/* Main View Area */}
       <main className="flex-1 flex flex-col overflow-y-auto min-h-screen">
-        {selectedFounderId ? (
+        {selectedCandidate ? (
+          loadingCandidateBrief ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3">
+              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+              <p className="text-sm text-slate-200">Analyzing public signals & generating candidate brief...</p>
+            </div>
+          ) : (
+            <div className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-8">
+              {/* Discovered Candidate Profile Header Card */}
+              <div className="glass-panel p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-blue-600/20 text-blue-400 font-semibold border border-blue-500/30 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-blue-300" />
+                      Discovered Candidate Signal
+                    </span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">
+                      {selectedCandidate.company_stage}
+                    </span>
+                  </div>
+                  <h2 className="text-3xl font-extrabold tracking-tight text-white">{selectedCandidate.full_name}</h2>
+                  <p className="text-lg text-slate-300 font-medium">{selectedCandidate.company_name} · {selectedCandidate.industry}</p>
+                  <p className="text-sm text-slate-200 max-w-2xl">{selectedCandidate.bio}</p>
+                </div>
+
+                <div className="flex flex-col gap-3 justify-end shrink-0">
+                  {selectedCandidate.tech_stack && (
+                    <div className="flex flex-wrap gap-1.5 justify-end">
+                      {selectedCandidate.tech_stack.split(",").map((tech) => (
+                        <span key={tech} className="text-xs px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+                          {tech.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => handleImportCandidate(selectedCandidate)}
+                    className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-all shadow-md shadow-blue-500/10 hover:shadow-blue-500/20 cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Candidate to Workspace
+                  </button>
+                </div>
+              </div>
+
+              {/* Candidate Evidence-Backed Observations & Conversation Prep Brief */}
+              {selectedCandidateBrief && (
+                <div className="space-y-6">
+                  {/* Evidence-Backed Observations */}
+                  <div className="glass-panel p-6 rounded-2xl space-y-4">
+                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-blue-400" />
+                      Evidence-Backed Observations (Zero Hallucination)
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {selectedCandidateBrief.observations.map((obs, idx) => (
+                        <div key={idx} className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+                          <div className="text-xs font-semibold text-blue-400 uppercase tracking-wider">Observation #{idx + 1}</div>
+                          <p className="text-sm text-white font-medium">{obs.observation}</p>
+                          <div className="text-xs text-slate-300 bg-slate-950/80 p-2.5 rounded-lg border border-slate-800">
+                            <span className="font-semibold text-slate-200">Hypothesis: </span>
+                            {obs.hypothesis}
+                          </div>
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {obs.evidence_urls.map((url, uidx) => (
+                              <a
+                                key={uidx}
+                                href={url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[11px] px-2 py-0.5 rounded bg-blue-950/80 text-blue-400 hover:text-blue-300 border border-blue-800/80 flex items-center gap-1 transition-all"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                Source Link
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Questions & Ways to be Helpful */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="glass-panel p-6 rounded-2xl space-y-3">
+                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <HelpCircle className="w-5 h-5 text-blue-400" />
+                        Tailored Conversation Questions
+                      </h3>
+                      <ul className="space-y-2.5">
+                        {selectedCandidateBrief.suggested_questions.map((q, idx) => (
+                          <li key={idx} className="text-sm text-slate-200 p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-start gap-2.5">
+                            <span className="w-5 h-5 rounded-full bg-blue-600/20 text-blue-400 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                              {idx + 1}
+                            </span>
+                            <span>{q}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="glass-panel p-6 rounded-2xl space-y-3">
+                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <Layers className="w-5 h-5 text-blue-400" />
+                        Ways to Be Helpful
+                      </h3>
+                      <ul className="space-y-2.5">
+                        {selectedCandidateBrief.ways_to_be_helpful.map((h, idx) => (
+                          <li key={idx} className="text-sm text-slate-200 p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-start gap-2.5">
+                            <span className="w-2 h-2 rounded-full bg-blue-400 shrink-0 mt-1.5" />
+                            <span>{h}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Outreach Generation Drafts */}
+                  <div className="glass-panel p-6 rounded-2xl space-y-4">
+                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                      <MessageSquare className="w-5 h-5 text-blue-400" />
+                      Tailored Outreach Drafts
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {selectedCandidateBrief.linkedin_draft && (
+                        <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2 relative">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              LinkedIn InMail Draft
+                            </span>
+                            <button
+                              onClick={() => handleCopyText(selectedCandidateBrief.linkedin_draft || "", "cand_linkedin")}
+                              className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded transition-all flex items-center gap-1 cursor-pointer"
+                            >
+                              {copiedField === "cand_linkedin" ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+                              {copiedField === "cand_linkedin" ? "Copied" : "Copy"}
+                            </button>
+                          </div>
+                          <p className="text-sm text-slate-200 whitespace-pre-wrap font-mono">{selectedCandidateBrief.linkedin_draft}</p>
+                        </div>
+                      )}
+
+                      {selectedCandidateBrief.email_draft && (
+                        <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2 relative">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+                              <Mail className="w-3.5 h-3.5" />
+                              Email Outreach Draft
+                            </span>
+                            <button
+                              onClick={() => handleCopyText(selectedCandidateBrief.email_draft || "", "cand_email")}
+                              className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded transition-all flex items-center gap-1 cursor-pointer"
+                            >
+                              {copiedField === "cand_email" ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+                              {copiedField === "cand_email" ? "Copied" : "Copy"}
+                            </button>
+                          </div>
+                          <p className="text-sm text-slate-200 whitespace-pre-wrap font-mono">{selectedCandidateBrief.email_draft}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        ) : selectedFounderId ? (
           loadingDetails ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-3">
               <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
