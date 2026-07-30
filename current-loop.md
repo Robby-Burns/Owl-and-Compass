@@ -160,3 +160,90 @@
 
 **Verdict:** PASS — Required lenses applied, zero CRITICAL/WARN scenarios found. Build and test execution verified cleanly across Python backend and Next.js frontend. Story ready to close.
 
+---
+
+# Current Loop State — Story 1.4 Loop 4 Handoff
+
+**Story:** Story 1.4 — Discovered Candidate Right-Side Panel & Header Deletion Confirmation
+**Role:** Builder / Checker
+**Loop:** 4
+**Risk Level:** LOW
+**Status:** Ready for Check (Loop 4)
+
+---
+
+## 1. What Was Built (Candidate Right-Side Panel & Header Deletion Confirmation)
+- **Candidate Right-Side Deep-Dive Panel (`FounderDashboard.tsx`)**: Extended main view area so selecting any candidate from the "Find Candidates" discovery list renders a rich right-side panel featuring:
+  - Discovered Candidate Profile Header with company stage, industry, tech stack badges, and "+ Add Candidate to Workspace" primary button.
+  - **Evidence-Backed Observations (Zero Hallucination)**: Displays observation text, hypothesis takeaways, and verified source links (`ExternalLink`).
+  - **Tailored Conversation Questions**: Numbered list of discussion starters.
+  - **High-Signal Ways to Be Helpful**: Actionable value-add assistance points.
+  - **Copyable Outreach Drafts**: LinkedIn InMail and Email outreach drafts equipped with 1-click copy buttons (`Copy`/`Check`).
+- **Inline Header Profile Deletion Confirmation (`FounderDashboard.tsx`)**: Rendered inline deletion confirmation popup (`Delete profile? [Confirm] [Cancel]`) on the main profile header card alongside sidebar item cards.
+- **Resilient Cascade Deletion (`actions.ts`)**: Updated `deleteFounder` to perform child table cascade deletion (`workspace_touchpoints`, `founder_timeline_events`, `founder_sources`) prior to deleting the founder record.
+
+---
+
+## 2. Acceptance Criteria Verification
+- **AC 1 (Candidate Right-Side Panel):** PASSED — Selecting a discovered candidate displays their full profile header, observations, questions, ways to help, and copyable drafts on the right-side main panel.
+- **AC 2 (Inline Deletion Confirmation):** PASSED — Clicking trash icon on header card displays inline confirmation prompt before deleting.
+- **AC 3 (Cascade Deletion):** PASSED — Child records in `workspace_touchpoints`, `founder_timeline_events`, and `founder_sources` are pruned prior to founder deletion.
+- **AC 4 (Integration Test Suite):** PASSED — All 9/9 integration tests pass successfully.
+
+### Raw Test Runner Output (`npm test` in `web/`):
+```
+> web@0.1.0 test
+> node --import tsx --test src/app/actions.test.ts
+
+▶ Next.js Server Actions integration suite
+  ✔ should retrieve default founders list (1.4903ms)
+  ✔ should create a new founder profile with XSS protection (3.41ms)
+  ✔ should log and save a touchpoint note (5.3077ms)
+  ✔ should handle concurrent writes without race conditions (3.533ms)
+  ✔ should generate structured prep briefs (0.5672ms)
+  ✔ should delete a founder profile cleanly (2.2839ms)
+  ✔ should discover founder candidates by criteria (0.2151ms)
+  ✔ should trigger rate limiting on abuse (0.7901ms)
+✔ Next.js Server Actions integration suite (19.2448ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 509.7573
+```
+
+---
+
+## 3. Key Assumptions & Choices
+- Rendering candidate briefs on the right-side main panel mirrors the saved founder experience for consistent UX.
+- Cascade deletion prevents Postgres foreign key constraint errors in Supabase.
+
+---
+
+## 4. Known Limitations & Deferred Work
+- None.
+
+---
+
+## Story 1.4 — Loop 4 — Checker Audit
+
+**Story risk level:** LOW  
+**Quick verification:** PASS  
+
+### Audit Summary
+- **Candidate Right-Side Panel**: Verified candidate selection state, right-side main container layout, observation URL links, prep questions, and copyable outreach drafts.
+- **Profile Header Deletion**: Verified inline confirmation banner on header card and cascade deletion in `actions.ts`.
+- **Test Executions**:
+  - Integration suite (`npm test` in `web/`): **9/9 tests passed (19.2ms)**.
+  - Python backend suite (`pytest`): **32/32 tests passed (0.73s)**.
+  - Production build (`npm run build` in `web/`): **Compiled successfully in 2.7s**.
+
+**Scenarios found:** None (0 CRITICAL / 0 WARN).
+
+**Lenses applied:** Skeptic, QA Edge, Spec Alignment
+
+**Verdict:** PASS — Required lenses applied, zero CRITICAL/WARN scenarios found. Build and test execution verified cleanly. Story completed and closed.
+
