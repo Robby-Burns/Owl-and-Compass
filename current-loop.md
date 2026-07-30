@@ -138,3 +138,25 @@
 
 ## 4. Known Limitations & Deferred Work
 - None.
+
+---
+
+## Story 1.4 — Loop 3 — Checker Audit
+
+**Story risk level:** LOW  
+**Quick verification:** PASS  
+
+### Audit Summary
+- **Candidate Discovery & Founder Deletion**: Verified `discoverCandidates` criteria filtering and rate-limiting. Verified `deleteFounder` cascade deletion across founders, touchpoints, and timeline events in both mock storage and Supabase adapters.
+- **Network & Docker Container Setup**: Verified `ENV HOSTNAME="0.0.0.0"` and dynamic `$PORT` binding in `Dockerfile` for Railway deployment compatibility.
+- **Test Executions**:
+  - Frontend action integration suite (`npm test` in `web/`): **9/9 tests passed (17.5ms)**.
+  - Python backend suite (`pytest`): **32/32 tests passed (0.71s)**.
+  - Standalone build (`npm run build` in `web/`): **Compiled successfully in 3.3s**.
+
+**Scenarios found:** None (0 CRITICAL / 0 WARN).
+
+**Lenses applied:** Skeptic, QA Edge, Spec Alignment, Red Team
+
+**Verdict:** PASS — Required lenses applied, zero CRITICAL/WARN scenarios found. Build and test execution verified cleanly across Python backend and Next.js frontend. Story ready to close.
+
