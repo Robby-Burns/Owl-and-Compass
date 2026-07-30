@@ -99,7 +99,7 @@ Tools are strictly categorized into **LLM-Callable Tools** (invoked directly by 
   - `discover_founders_by_criteria(query: string, industry: string, stage: string, tech_stack: string) → list[FounderCandidate]` — Discovers founders matching topic, industry, company stage, or technology criteria using public web queries only. Binds to `llm_provider`.
   - `search_public_signals(public_founder_name: string, public_topics: list[string], cached_only: bool = False) → list[SearchResult]` — Queries web sources (or local cache if search adapter fails/times out) for public appearances, podcasts, blogs, and posts for a target founder. Strictly isolates parameters from internal workspace notes to prevent private memory leaks.
 - **Internal Pipeline Functions:**
-  - `fetch_web_content(url: string) → RawContent` — Scrapes raw text/metadata from a verified URL, strips HTML/script tags, and wraps output in `<untrusted_web_content>` tags.
+  - `fetch_web_content(url: string) → RawContent` — Scrapes web content using Crawl4AI (`AsyncWebCrawler` with Playwright JS rendering and static HTML fallback), converts pages to LLM-optimized Markdown, enforces a 50k character max limit, and wraps output in `<untrusted_web_content>` XML security guardrails.
   - `deduplicate_sources(sources: list[SearchResult]) → list[SearchResult]` — Normalizes and deduplicates incoming URLs and publication signatures.
   - `save_founder_profile(profile_data: dict) → FounderProfile` — Stores verified founder data and research briefs in the workspace database via Next.js Server Actions.
 - **Risk Profile:** LOW

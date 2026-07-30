@@ -17,10 +17,12 @@ RUN npm run build   # creates .next, .next/static, etc.
 # -------------------------------------------------
 FROM node:22-bookworm-slim AS runtime
 
-# Python is retained for the Owl & Compass backend package. A virtual
-# environment avoids the system Python's externally-managed-package policy.
+# Install Python, system libraries for Playwright Chromium, and virtual environment
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-venv \
+        libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+        libdbus-1-3 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
+        libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -30,7 +32,8 @@ WORKDIR /app
 COPY pyproject.toml .
 COPY src/ ./src
 RUN python3 -m venv /opt/venv \
-    && /opt/venv/bin/pip install --no-cache-dir .
+    && /opt/venv/bin/pip install --no-cache-dir . \
+    && (/opt/venv/bin/python3 -m playwright install chromium || echo "WARN: Playwright Chromium install bypassed")
 
 # Copy the self-contained Next.js server and its runtime assets.
 COPY --from=frontend-builder /app/web/.next/standalone ./

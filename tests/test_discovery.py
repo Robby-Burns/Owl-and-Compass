@@ -4,10 +4,13 @@ import pytest
 from pydantic import HttpUrl, TypeAdapter
 from owl_and_compass.discovery import (
     MANDATORY_GUARDRAIL_INSTRUCTION,
+    DiscoveryConfig,
+    afetch_web_content,
     clean_html_content,
     deduplicate_sources,
     discover_founders_by_criteria,
     fetch_web_content,
+    filter_sensitive_tokens,
     format_research_prompt,
     search_public_signals,
 )
@@ -23,13 +26,10 @@ def test_clean_html_content_stripping():
         "<p>Working on <a href='#'>AI Agents</a>.</p></body></html>"
     )
     cleaned = clean_html_content(raw_html)
-    # Check style and script tags content got stripped completely
     assert "red" not in cleaned
     assert "injected script" not in cleaned
-    # Check HTML tags got stripped
     assert "<h1>" not in cleaned
     assert "<a>" not in cleaned
-    # Check HTML entity was decoded
     assert "Founder & Ceo Working on AI Agents." in cleaned
 
 
@@ -40,19 +40,111 @@ def test_fetch_web_content_xml_guardrail():
 
     assert isinstance(raw_content, RawContent)
     assert str(raw_content.url) == url
-    # Check wrapping tags exist around text
     assert raw_content.wrapped_content.startswith("<untrusted_web_content>")
     assert raw_content.wrapped_content.endswith("</untrusted_web_content>")
     assert "Working on AI evaluation frameworks." in raw_content.raw_text
-    # Verify script content is not inside raw_text
     assert "malicious" not in raw_content.raw_text
 
 
 def test_fetch_web_content_ftp_scheme_raises_value_error():
-    """Checker Scenario 1 Fix: Verify fetch_web_content raises ValueError on non-HTTP/HTTPS schemes like ftp."""
+    """Verify fetch_web_content raises ValueError on non-HTTP/HTTPS schemes like ftp."""
     with pytest.raises(ValueError) as exc_info:
         fetch_web_content("ftp://example.com/file.txt")
     assert "scheme" in str(exc_info.value).lower()
+
+
+def test_filter_sensitive_tokens():
+    """Verify sensitive token filter masks credentials, tokens, and API secrets."""
+    sample_text = "Here is my api_key='sk_test_1234567890' and Bearer token1234567890123456."
+    filtered = filter_sensitive_tokens(sample_text)
+    assert "sk_test_1234567890" not in filtered
+    assert "token1234567890123456" not in filtered
+    assert "[REDACTED_SECRET]" in filtered
+
+
+@pytest.mark.asyncio
+async def test_afetch_web_content_mock_crawler():
+    """Verify afetch_web_content uses injected crawler_instance for full JS extraction testing."""
+
+    class MockCrawlResult:
+        markdown = "# Founder Profile\nExtracted via Crawl4AI JS renderer."
+
+    class MockCrawler:
+        async def arun(self, url: str):
+            return MockCrawlResult()
+
+    url = "https://blog.example.com/post"
+    raw_content = await afetch_web_content(url, crawler_instance=MockCrawler())
+
+    assert isinstance(raw_content, RawContent)
+    assert raw_content.extraction_quality == "full"
+    assert "Extracted via Crawl4AI JS renderer." in raw_content.raw_text
+    assert raw_content.wrapped_content.startswith("<untrusted_web_content>")
+    assert raw_content.wrapped_content.endswith("</untrusted_web_content>")
+
+
+@pytest.mark.asyncio
+async def test_afetch_web_content_fallback_on_missing_crawler():
+    """Verify afetch_web_content degrades gracefully to static fallback when crawler is missing."""
+    url = "https://example.com/static-page"
+    cfg = DiscoveryConfig(use_js_rendering=True, fallback_to_static=True)
+
+    raw_content = await afetch_web_content(url, config=cfg)
+    assert isinstance(raw_content, RawContent)
+    assert raw_content.extraction_quality in ("full", "partial")
+    assert raw_content.wrapped_content.startswith("<untrusted_web_content>")
+
+
+@pytest.mark.asyncio
+async def test_checker_scenario_1_rendering_failure_preserves_guardrails():
+    """Checker Scenario 1 Fix: Verify afetch_web_content preserves XML guardrails even when JS crawler raises an exception."""
+
+    class FailingCrawler:
+        async def arun(self, url: str):
+            raise RuntimeError("Playwright rendering engine crashed")
+
+    url = "https://example.com/crashing-page"
+    raw_content = await afetch_web_content(url, crawler_instance=FailingCrawler())
+
+    assert isinstance(raw_content, RawContent)
+    assert raw_content.extraction_quality == "partial"
+    assert raw_content.wrapped_content.startswith("<untrusted_web_content>")
+    assert raw_content.wrapped_content.endswith("</untrusted_web_content>")
+    assert "Working on AI evaluation frameworks." in raw_content.raw_text
+
+
+def test_checker_scenario_2_expanded_sensitive_token_redaction():
+    """Checker Scenario 2 Fix: Verify filter_sensitive_tokens redacts diverse API key formats including sk-12345abcdef, ghp_, and AKIA."""
+    sample_text = "Secrets: sk-12345abcdef and ghp_1234567890abcdef and AKIAIOSFODNN7EXAMPLE and secret_key='secret12345'."
+    filtered = filter_sensitive_tokens(sample_text)
+    assert "sk-12345abcdef" not in filtered
+    assert "ghp_1234567890abcdef" not in filtered
+    assert "AKIAIOSFODNN7EXAMPLE" not in filtered
+    assert "secret12345" not in filtered
+    assert filtered.count("[REDACTED_SECRET]") >= 3
+
+
+@pytest.mark.asyncio
+async def test_checker_scenario_3_content_size_truncation():
+    """Checker Scenario 3 Fix: Verify afetch_web_content strictly truncates extracted markdown exceeding max_content_chars."""
+
+    class HugeMarkdownCrawler:
+        async def arun(self, url: str):
+            class Res:
+                markdown = "X" * 100000
+
+            return Res()
+
+    cfg = DiscoveryConfig(max_content_chars=50000)
+    raw_content = await afetch_web_content(
+        "https://example.com/huge", config=cfg, crawler_instance=HugeMarkdownCrawler()
+    )
+
+    assert len(raw_content.raw_text) == 50000
+    assert (
+        raw_content.wrapped_content
+        == f"<untrusted_web_content>\n{'X' * 50000}\n</untrusted_web_content>"
+    )
 
 
 def test_deduplicate_sources_normalization():
@@ -67,7 +159,9 @@ def test_deduplicate_sources_normalization():
         ),
         SearchResult(
             title="Interview Episode 1 Dup",
-            url=url_adapter.validate_python("https://youtube.com/interview?ref=newsletter"),
+            url=url_adapter.validate_python(
+                "https://youtube.com/interview?ref=newsletter"
+            ),
             source_type="interview",
             extracted_text="Content 1 duplicate",
         ),
@@ -86,7 +180,7 @@ def test_deduplicate_sources_normalization():
 
 
 def test_deduplicate_sources_www_subdomain():
-    """Checker Scenario 3 Fix: Verify deduplicate_sources deduplicates www vs non-www hostnames."""
+    """Verify deduplicate_sources deduplicates www vs non-www hostnames."""
     url_adapter = TypeAdapter(HttpUrl)
     src1 = SearchResult(
         title="Interview",
@@ -119,18 +213,18 @@ def test_format_research_prompt_guardrails():
 
     formatted_prompt = format_research_prompt(raw_contents, system_prompt)
 
-    # Verify system prompt first
     assert formatted_prompt.startswith(system_prompt)
-    # Verify security policy instruction is appended
     assert MANDATORY_GUARDRAIL_INSTRUCTION in formatted_prompt
-    # Verify untrusted tags block boundary and contents
     assert "--- BEGIN UNTRUSTED DATA ---" in formatted_prompt
-    assert "<untrusted_web_content>\nExample scraped text.\n</untrusted_web_content>" in formatted_prompt
+    assert (
+        "<untrusted_web_content>\nExample scraped text.\n</untrusted_web_content>"
+        in formatted_prompt
+    )
     assert "--- END UNTRUSTED DATA ---" in formatted_prompt
 
 
 def test_format_research_prompt_newline_between_xml_blocks():
-    """Checker Scenario 2 Fix: Verify format_research_prompt guarantees newline separation between multiple XML blocks."""
+    """Verify format_research_prompt guarantees newline separation between multiple XML blocks."""
     rc1 = RawContent(
         url=TypeAdapter(HttpUrl).validate_python("https://example.com/1"),
         raw_text="foo",
@@ -148,7 +242,6 @@ def test_format_research_prompt_newline_between_xml_blocks():
 
 def test_discover_founders_by_criteria_tool():
     """Verify discover_founders_by_criteria tool runs default and custom execution blocks."""
-    # Test default mock execution
     candidates = discover_founders_by_criteria(
         query="Agent evaluation",
         industry="DevTools",
@@ -159,7 +252,6 @@ def test_discover_founders_by_criteria_tool():
     assert candidates[0].full_name == "Maya Lin"
     assert candidates[0].company_stage == "Seed"
 
-    # Test custom mock execution
     def mock_llm_executor(prompt: str) -> list:
         return [
             {
@@ -185,7 +277,6 @@ def test_discover_founders_by_criteria_tool():
 
 def test_search_public_signals_tool():
     """Verify search_public_signals runs default and custom execution blocks."""
-    # Test default mock search
     results = search_public_signals(
         public_founder_name="Maya Lin",
         public_topics=["MCP", "AI Eval"],
@@ -193,7 +284,6 @@ def test_search_public_signals_tool():
     assert len(results) == 1
     assert "Interview with Maya Lin" in results[0].title
 
-    # Test custom mock executor
     def mock_search_executor(name: str, topics: list) -> list:
         url_adapter = TypeAdapter(HttpUrl)
         return [

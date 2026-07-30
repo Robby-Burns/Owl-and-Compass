@@ -46,13 +46,13 @@ Founders and networking professionals waste hours manually searching for peers a
 
 ### Story 1.3: Discovery & Research Agent with Untrusted XML Guardrails
 - **As a** scout / founder
-- **I want to** discover founder public signals and format source-attributed briefs wrapped in `<untrusted_web_content>` XML guardrails
+- **I want to** discover founder public signals, scrape JS-rendered pages via Crawl4AI / Playwright (with static fallback), and format source-attributed briefs wrapped in `<untrusted_web_content>` XML guardrails
 - **So that** research briefs are generated without hallucinated claims or prompt injection vulnerabilities.
 - **Acceptance Criteria:**
   1. `discover_founders_by_criteria` and `search_public_signals` tools implemented.
-  2. Scraped web content is wrapped in `<untrusted_web_content>` tags.
+  2. Scraped web content uses Crawl4AI JS rendering (or static fallback) and is wrapped in `<untrusted_web_content>` tags.
   3. Prompt instructions strictly enforce passive data handling for untrusted tags.
-  4. Unit/integration tests verify search tools and XML guardrails.
+  4. Unit/integration tests verify search tools, Crawl4AI fallback logic, and XML guardrails.
 - **Risk Level:** LOW
 
 ### Story 1.4: Next.js Server Actions & Prep Brief UI Components

@@ -127,4 +127,6 @@ class RawContent(BaseModel):
     url: HttpUrl
     raw_text: str
     wrapped_content: str
+    extraction_quality: str = Field("full", description="'full' (JS rendered), 'partial' (static fallback), or 'failed'")
+
 
