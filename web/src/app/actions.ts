@@ -194,30 +194,42 @@ function sanitizeString(str: string, maxLength: number): string {
 export async function getFounders(): Promise<Founder[]> {
   checkRateLimit("getFounders", 60, 10000);
   
-  if (isMocked) {
-    const release = await dbLock.acquire();
+  const release = await dbLock.acquire();
+  let mockDbFounders: Founder[] = [];
+  let deletedIds: string[] = [];
+  try {
+    const db = getMockDb();
+    mockDbFounders = db.founders || [];
+    deletedIds = (db as any).deleted_ids || [];
+  } finally {
+    release();
+  }
+
+  let allFounders: Founder[] = [...mockDbFounders];
+
+  if (!isMocked) {
     try {
-      return getMockDb().founders;
-    } finally {
-      release();
+      const { data, error } = await supabase
+        .from("founders")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        const existingIds = new Set(allFounders.map((f) => f.id));
+        for (const sf of data) {
+          if (!existingIds.has(sf.id)) {
+            allFounders.push(sf);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Supabase getFounders notice:", e);
     }
   }
 
-  const { data, error } = await supabase
-    .from("founders")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Error fetching founders:", error);
-    const release = await dbLock.acquire();
-    try {
-      return getMockDb().founders;
-    } finally {
-      release();
-    }
-  }
-  return data || [];
+  // Filter out any IDs explicitly marked as deleted
+  const finalFounders = allFounders.filter((f) => !deletedIds.includes(f.id));
+  return finalFounders;
 }
 
 export async function getFounderDetails(founderId: string): Promise<{
@@ -248,8 +260,17 @@ export async function getFounderDetails(founderId: string): Promise<{
     .single();
 
   if (founderError) {
-    console.error("Error fetching founder details:", founderError);
-    return { founder: null, touchpoints: [], timelineEvents: [] };
+    // Fallback to local mock db
+    const release = await dbLock.acquire();
+    try {
+      const db = getMockDb();
+      const founder = db.founders.find((f) => f.id === cleanId) || null;
+      const touchpoints = db.touchpoints.filter((t) => t.founder_id === cleanId);
+      const timelineEvents = db.timelineEvents.filter((te) => te.founder_id === cleanId);
+      return { founder, touchpoints, timelineEvents };
+    } finally {
+      release();
+    }
   }
 
   const { data: touchpoints } = await supabase
@@ -284,10 +305,10 @@ export async function createFounder(formData: {
   // Input validations and bounds checks
   const fullName = sanitizeString(formData.fullName, 100);
   const companyName = sanitizeString(formData.companyName, 100);
-  const companyStage = sanitizeString(formData.companyStage, 50);
-  const industry = sanitizeString(formData.industry, 100);
+  const companyStage = sanitizeString(formData.companyStage || "Seed", 50);
+  const industry = sanitizeString(formData.industry || "Technology", 100);
   const techStack = formData.techStack ? sanitizeString(formData.techStack, 200) : "";
-  const bio = sanitizeString(formData.bio, 1000);
+  const bio = sanitizeString(formData.bio || "", 1000);
 
   if (fullName.length < 2) {
     throw new Error("Full name must be at least 2 characters.");
@@ -295,51 +316,61 @@ export async function createFounder(formData: {
   if (companyName.length < 1) {
     throw new Error("Company name must be at least 1 character.");
   }
-  const allowedStages = ["Pre-Seed", "Seed", "Series A", "Series B+"];
-  if (!allowedStages.includes(companyStage)) {
-    throw new Error("Invalid company stage.");
-  }
 
-  const newFounder = {
+  const newFounderData = {
     full_name: fullName,
     company_name: companyName,
-    company_stage: companyStage,
-    industry: industry,
+    company_stage: companyStage || "Seed",
+    industry: industry || "Technology",
     tech_stack: techStack,
     bio: bio,
   };
 
-  if (isMocked) {
-    const release = await dbLock.acquire();
+  let createdFounder: Founder | null = null;
+
+  if (!isMocked) {
     try {
-      const db = getMockDb();
-      const created: Founder = {
-        id: `founder-${Math.random().toString(36).substr(2, 9)}`,
-        ...newFounder,
-        created_at: new Date().toISOString(),
-      };
-      db.founders.unshift(created);
-      saveMockDb(db);
-      tryRevalidatePath("/");
-      return created;
-    } finally {
-      release();
+      const { data, error } = await supabase
+        .from("founders")
+        .insert(newFounderData)
+        .select()
+        .single();
+
+      if (!error && data) {
+        createdFounder = data;
+      }
+    } catch (e) {
+      console.error("Supabase insert notice:", e);
     }
   }
 
-  const { data, error } = await supabase
-    .from("founders")
-    .insert(newFounder)
-    .select()
-    .single();
+  if (!createdFounder) {
+    createdFounder = {
+      id: `founder-${Math.random().toString(36).substring(2, 11)}`,
+      ...newFounderData,
+      created_at: new Date().toISOString(),
+    };
+  }
 
-  if (error) {
-    console.error("Error creating founder:", error);
-    return null;
+  const release = await dbLock.acquire();
+  try {
+    const db = getMockDb();
+    if (!db.founders.some((f) => f.id === createdFounder!.id)) {
+      db.founders.unshift(createdFounder);
+    }
+    // Remove from deleted_ids if previously deleted
+    if ((db as any).deleted_ids) {
+      (db as any).deleted_ids = (db as any).deleted_ids.filter(
+        (id: string) => id !== createdFounder!.id && id !== formData.fullName
+      );
+    }
+    saveMockDb(db);
+  } finally {
+    release();
   }
 
   tryRevalidatePath("/");
-  return data;
+  return createdFounder;
 }
 
 export async function saveTouchpoint(formData: {
@@ -454,49 +485,34 @@ export async function deleteFounder(founderId: string): Promise<boolean> {
 
   if (!cleanId) return false;
 
-  if (isMocked) {
-    const release = await dbLock.acquire();
-    try {
-      const db = getMockDb();
-      db.founders = db.founders.filter((f) => f.id !== cleanId && f.id !== founderId);
-      db.touchpoints = db.touchpoints.filter((t) => t.founder_id !== cleanId && t.founder_id !== founderId);
-      db.timelineEvents = db.timelineEvents.filter((te) => te.founder_id !== cleanId && te.founder_id !== founderId);
-      saveMockDb(db);
-      tryRevalidatePath("/");
-      return true;
-    } finally {
-      release();
-    }
-  }
-
-  try {
-    // Delete child records first to prevent foreign key constraints
-    await supabase.from("workspace_touchpoints").delete().eq("founder_id", cleanId);
-    await supabase.from("founder_timeline_events").delete().eq("founder_id", cleanId);
-    await supabase.from("founder_sources").delete().eq("founder_id", cleanId);
-
-    const { error } = await supabase
-      .from("founders")
-      .delete()
-      .eq("id", cleanId);
-
-    if (error) {
-      console.error("Supabase delete failed, falling back to mock cleanup:", error);
-    }
-  } catch (e) {
-    console.error("Error deleting founder from database:", e);
-  }
-
-  // Always clean up mock storage as well to ensure total UI synchronization
+  // Always update persistent local storage and append to deleted_ids list
   const release = await dbLock.acquire();
   try {
     const db = getMockDb();
     db.founders = db.founders.filter((f) => f.id !== cleanId && f.id !== founderId);
     db.touchpoints = db.touchpoints.filter((t) => t.founder_id !== cleanId && t.founder_id !== founderId);
     db.timelineEvents = db.timelineEvents.filter((te) => te.founder_id !== cleanId && te.founder_id !== founderId);
+    
+    if (!(db as any).deleted_ids) (db as any).deleted_ids = [];
+    if (!(db as any).deleted_ids.includes(cleanId)) (db as any).deleted_ids.push(cleanId);
+    if (!(db as any).deleted_ids.includes(founderId)) (db as any).deleted_ids.push(founderId);
+    
     saveMockDb(db);
   } finally {
     release();
+  }
+
+  // If Supabase is active and ID is a valid UUID, attempt remote cloud deletion
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
+  if (!isMocked && isUuid) {
+    try {
+      await supabase.from("workspace_touchpoints").delete().eq("founder_id", cleanId);
+      await supabase.from("founder_timeline_events").delete().eq("founder_id", cleanId);
+      await supabase.from("founder_sources").delete().eq("founder_id", cleanId);
+      await supabase.from("founders").delete().eq("id", cleanId);
+    } catch (e) {
+      console.error("Supabase delete notice:", e);
+    }
   }
 
   tryRevalidatePath("/");

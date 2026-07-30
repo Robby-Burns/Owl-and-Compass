@@ -195,10 +195,13 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
         setSelectedFounderId(null);
         setSelectedFounder(null);
       }
+      if (selectedCandidate?.id === id) {
+        setSelectedCandidate(null);
+        setSelectedCandidateBrief(null);
+      }
       setConfirmDeleteId(null);
     } catch (e) {
       console.error("Delete failed:", e);
-      // Fallback local cleanup
       setFounders((prev) => prev.filter((f) => f.id !== id));
       if (selectedFounderId === id) {
         setSelectedFounderId(null);
@@ -228,18 +231,20 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
       const created = await createFounder({
         fullName: candidate.full_name,
         companyName: candidate.company_name,
-        companyStage: candidate.company_stage,
-        industry: candidate.industry,
+        companyStage: candidate.company_stage || "Seed",
+        industry: candidate.industry || "Technology",
         techStack: candidate.tech_stack || "",
-        bio: candidate.bio,
+        bio: candidate.bio || "",
       });
       if (created) {
-        setFounders([created, ...founders]);
+        setFounders((prev) => [created, ...prev.filter((f) => f.id !== created.id)]);
+        setSelectedCandidate(null);
+        setSelectedCandidateBrief(null);
         setSidebarTab("saved");
         handleSelectFounder(created.id);
       }
     } catch (e) {
-      console.error(e);
+      console.error("Failed to import candidate:", e);
     }
   };
 
