@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import {
   Compass,
   Plus,
@@ -46,6 +46,17 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [founders, setFounders] = useState<Founder[]>(initialFounders);
   const [selectedFounderId, setSelectedFounderId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (theme === "light") {
+        document.documentElement.classList.add("light");
+      } else {
+        document.documentElement.classList.remove("light");
+      }
+    }
+  }, [theme]);
+
 
   const [activeTab, setActiveTab] = useState<"timeline" | "brief">("timeline");
   
@@ -262,7 +273,28 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
   };
 
   return (
-    <div className={`flex flex-col min-h-screen w-full lg:flex-row ${theme}`}>
+    <div className={`flex flex-col min-h-screen w-full lg:flex-row relative ${theme}`}>
+      {/* Top Right Theme Toggle Floating Widget */}
+      <div className="fixed top-4 right-6 z-50 flex items-center gap-2">
+        <button
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="px-3.5 py-2 rounded-xl bg-[#2F3640] hover:bg-[#C69C35] text-[#F5D77F] hover:text-[#1D2228] border border-[#C69C35]/50 transition-all cursor-pointer flex items-center gap-2 shadow-xl shadow-black/30 font-extrabold text-xs"
+          title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
+        >
+          {theme === "dark" ? (
+            <>
+              <Sun className="w-4 h-4 text-amber-300" />
+              <span>Light Mode</span>
+            </>
+          ) : (
+            <>
+              <Moon className="w-4 h-4 text-amber-600" />
+              <span>Dark Mode</span>
+            </>
+          )}
+        </button>
+      </div>
+
       {/* Sidebar List */}
       <aside className="w-full lg:w-96 flex flex-col glass-panel border-r border-[#C69C35]/30 shrink-0">
         {/* Brand Header */}
@@ -274,22 +306,14 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
               <p className="text-[11px] text-amber-200/80 font-medium">Founder Intelligence System</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-2 rounded-lg bg-[#C69C35]/20 hover:bg-[#C69C35] text-[#F5D77F] hover:text-[#1D2228] border border-[#C69C35]/40 transition-all cursor-pointer flex items-center justify-center"
-              title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
-            >
-              {theme === "dark" ? <Sun className="w-5 h-5 text-amber-300" /> : <Moon className="w-5 h-5 text-amber-600" />}
-            </button>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="p-2 rounded-lg bg-[#C69C35]/20 hover:bg-[#C69C35] text-[#F5D77F] hover:text-[#1D2228] border border-[#C69C35]/40 transition-all cursor-pointer"
-              title="Add New Founder"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
-          </div>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="p-2.5 rounded-xl bg-[#C69C35] hover:bg-[#D6AC45] text-[#1D2228] font-extrabold transition-all cursor-pointer shadow-md shadow-[#C69C35]/20 flex items-center gap-1 text-xs"
+            title="Add New Founder"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Add</span>
+          </button>
         </div>
 
 

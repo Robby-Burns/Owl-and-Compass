@@ -79,3 +79,105 @@ h1, h2, h3, h4, h5, h6 {
   -webkit-text-fill-color: transparent;
 }
 
+/* Light Mode Theme Overrides */
+.light, html.light {
+  --background: #F1F4F8;
+  --foreground: #1E293B;
+  --card-bg: #FFFFFF;
+  --border-color: rgba(198, 156, 53, 0.45);
+  --accent-gold: #C69C35;
+  --accent-gold-hover: #DDB44E;
+  --charcoal-black: #F8FAFC;
+}
+
+html.light, html.light body, .light body {
+  background: #F1F4F8 !important;
+  color: #1E293B !important;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(198, 156, 53, 0.12) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(203, 213, 225, 0.6) 0px, transparent 50%) !important;
+}
+
+.light .glass-panel {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(198, 156, 53, 0.35) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+  color: #1E293B !important;
+}
+
+.light .glass-card {
+  background: #F8FAFC !important;
+  border: 1px solid rgba(198, 156, 53, 0.3) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03) !important;
+  color: #1E293B !important;
+}
+
+.light .glass-card:hover {
+  background: #FFFFFF !important;
+  border-color: rgba(198, 156, 53, 0.7) !important;
+  box-shadow: 0 4px 20px rgba(198, 156, 53, 0.15) !important;
+}
+
+.light .gold-gradient-text {
+  background: linear-gradient(135deg, #9E7920 0%, #C69C35 50%, #7C5B12 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+.light aside {
+  background: #FFFFFF !important;
+}
+
+.light .bg-\[\#2F3640\] {
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+}
+
+.light .bg-\[\#2F3640\]\/90,
+.light .bg-\[\#2F3640\]\/70,
+.light .bg-\[\#2F3640\]\/60 {
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+}
+
+.light .bg-\[\#1D2228\] {
+  background-color: #F1F5F9 !important;
+  color: #0F172A !important;
+  border-color: rgba(198, 156, 53, 0.3) !important;
+}
+
+.light .bg-\[\#1D2228\]\/80,
+.light .bg-\[\#1D2228\]\/70,
+.light .bg-\[\#1D2228\]\/50 {
+  background-color: #F1F5F9 !important;
+  color: #0F172A !important;
+}
+
+.light .text-white {
+  color: #0F172A !important;
+}
+
+.light .text-amber-100,
+.light .text-amber-100\/90,
+.light .text-amber-100\/80,
+.light .text-amber-100\/70,
+.light .text-amber-200\/90,
+.light .text-amber-200\/80,
+.light .text-amber-200\/60 {
+  color: #334155 !important;
+}
+
+.light input,
+.light select,
+.light textarea {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+  border-color: rgba(198, 156, 53, 0.4) !important;
+}
+
+.light input::placeholder,
+.light textarea::placeholder {
+  color: #94A3B8 !important;
+}
+
+
