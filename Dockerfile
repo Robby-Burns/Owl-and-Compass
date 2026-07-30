@@ -24,8 +24,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set working directory
 WORKDIR /app
 
-# Install Python dependencies (from pyproject.toml)
+# Install Python dependencies and source package (from pyproject.toml and src/)
 COPY pyproject.toml .
+COPY src/ ./src
 RUN pip install --no-cache-dir .
 
 # Copy compiled Next.js assets from the builder
@@ -34,9 +35,6 @@ COPY --from=frontend-builder /app/web/public ./public
 COPY --from=frontend-builder /app/web/next.config.mjs ./next.config.mjs
 COPY --from=frontend-builder /app/web/package*.json ./
 COPY --from=frontend-builder /app/web/.next/standalone ./
-
-# Copy the FastAPI source code
-COPY src/ ./src
 
 # Expose ports (Railway will expose only $PORT; we bind both services to it)
 EXPOSE 3000 8000
