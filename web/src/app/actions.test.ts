@@ -7,7 +7,10 @@ import {
   getFounderDetails,
   generatePrepBrief,
   deleteFounder,
-  discoverCandidates
+  discoverCandidates,
+  searchWorkspace,
+  analyzeWorkspacePatterns,
+  getFounderTimelineNodes
 } from "./actions";
 
 test("Next.js Server Actions integration suite", async (t) => {
@@ -126,6 +129,54 @@ test("Next.js Server Actions integration suite", async (t) => {
     assert.ok(Array.isArray(candidates));
     assert.ok(candidates.length >= 1);
     assert.ok(candidates[0].full_name);
+  });
+
+  await t.test("should perform natural language global workspace search with citations", async () => {
+    const searchResults = await searchWorkspace("RRF");
+    assert.ok(Array.isArray(searchResults));
+    assert.ok(searchResults.length >= 1);
+    const topResult = searchResults[0];
+    assert.ok(topResult.founder_id);
+    assert.ok(topResult.founder_name);
+    assert.ok(topResult.snippet);
+    assert.ok(topResult.score > 0);
+  });
+
+  await t.test("should aggregate cross-founder pattern clusters with confidence metrics", async () => {
+    const patterns = await analyzeWorkspacePatterns();
+    assert.ok(Array.isArray(patterns));
+    assert.ok(patterns.length >= 1);
+    const pattern = patterns[0];
+    assert.ok(pattern.topic);
+    assert.ok(pattern.founder_count >= 2);
+    assert.ok(pattern.pattern_score >= 0.15);
+    assert.ok(pattern.contributing_founders.length >= 2);
+  });
+
+  await t.test("should compute 5-stage founder relationship timeline nodes", async () => {
+    const list = await getFounders();
+    const targetFounder = list[0];
+
+    const nodes = await getFounderTimelineNodes(targetFounder.id);
+    assert.ok(Array.isArray(nodes));
+    assert.strictEqual(nodes.length, 5);
+    assert.strictEqual(nodes[0].stage_id, "discovery");
+    assert.strictEqual(nodes[0].status, "completed");
+  });
+
+  await t.test("searchWorkspace fallback: should fallback to BM25 full-text search when vector service times out or errors", async () => {
+    const results = await searchWorkspace("Maya");
+    assert.ok(Array.isArray(results));
+    assert.ok(results.length >= 1, "Fallback search must return matching profiles on vector timeout/mock");
+    assert.strictEqual(results[0].founder_name, "Maya Lin");
+  });
+
+  await t.test("test_pattern_confidence_threshold: should strictly enforce count >= 2 AND score >= 0.15 threshold", async () => {
+    const patterns = await analyzeWorkspacePatterns();
+    for (const p of patterns) {
+      assert.ok(p.founder_count >= 2, "Pattern count must be >= 2");
+      assert.ok(p.pattern_score >= 0.15, "Pattern score must be >= 0.15");
+    }
   });
 
   await t.test("should trigger rate limiting on abuse", async () => {

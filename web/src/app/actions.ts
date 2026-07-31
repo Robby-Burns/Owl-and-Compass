@@ -49,6 +49,12 @@ export interface VerifiedObservation {
   evidence_urls: string[];
 }
 
+export interface MethodologyDrafts {
+  linkedin_draft: string;
+  email_draft: string;
+  framework_summary: string;
+}
+
 export interface PrepBrief {
   founder_id: string;
   observations: VerifiedObservation[];
@@ -56,6 +62,49 @@ export interface PrepBrief {
   ways_to_be_helpful: string[];
   linkedin_draft?: string;
   email_draft?: string;
+  methodology_drafts?: {
+    combined: MethodologyDrafts;
+    robay: MethodologyDrafts;
+    painpoint: MethodologyDrafts;
+    voss: MethodologyDrafts;
+  };
+}
+
+export interface SearchResultItem {
+  touchpoint_id?: string;
+  founder_id: string;
+  founder_name: string;
+  company_name: string;
+  source_type: string;
+  snippet: string;
+  score: number;
+  matched_field: string;
+  created_at: string;
+}
+
+export interface PatternCard {
+  id: string;
+  topic: string;
+  category: "topic" | "pain_point" | "hiring_signal" | "open_loop";
+  founder_count: number;
+  pattern_score: number;
+  contributing_founders: Array<{
+    founder_id: string;
+    founder_name: string;
+    company_name: string;
+    snippet: string;
+  }>;
+  summary: string;
+}
+
+export interface TimelineStageNode {
+  stage_id: "discovery" | "first_note" | "meeting" | "deliverable" | "active_rapport";
+  title: string;
+  status: "completed" | "current" | "upcoming";
+  occurred_at?: string;
+  details?: string;
+  open_loops: string[];
+  promises: string[];
 }
 
 // Persistent Mock Database Configuration
@@ -538,13 +587,49 @@ export async function generatePrepBrief(founderId: string): Promise<PrepBrief> {
     `Offer early feedback on ${companyName}'s developer experience and API design.`
   ];
 
+  const combinedLinkedIn = `Hi ${founderName},\n\nI've been following ${companyName}'s work in ${industry} and was really impressed by your approach with ${techStack}. Would love to connect and hear how things are progressing at ${stage}!`;
+  const combinedEmail = `Subject: ${companyName} / ${industry} architecture & scaling\n\nHi ${founderName},\n\nI came across ${companyName} and your focus on ${bio.slice(0, 80)}. Given your tech stack with ${techStack}, I'd love to share some metrics and benchmarks from our engineering team.\n\nLet me know if you'd be open to a brief chat next week.\n\nBest regards,`;
+
+  const robayLinkedIn = `Hi ${founderName},\n\nI noticed your recent public work with ${companyName} and was deeply curious—what inspired your core architecture choices around ${techStack.split(",")[0] || "your technology stack"}? Would love to connect and learn more about your journey!`;
+  const robayEmail = `Subject: Curious about your work at ${companyName}\n\nHi ${founderName},\n\nI've been tracking ${companyName}'s growth in ${industry}. I'd love to ask a couple of quick questions about how you navigated early product decisions with ${techStack}.\n\nAlways excited to build genuine relationships with engineers building in this space.\n\nBest,`;
+
+  const painpointLinkedIn = `Hi ${founderName},\n\nFounders in ${industry} often run into huge bottlenecks around ${techStack.split(",")[0] || "system performance"} when scaling at the ${stage} stage. How are you and ${companyName} currently handling those challenges?`;
+  const painpointEmail = `Subject: ${companyName} scaling bottlenecks in ${industry}\n\nHi ${founderName},\n\nWe've been seeing a lot of teams struggle with performance and reliability when building on ${techStack}. I'm really keen to discover what friction points ${companyName} is encountering right now, rather than making assumptions.\n\nWould love to swap notes on what's working and what isn't.\n\nBest,`;
+
+  const vossLinkedIn = `Hi ${founderName},\n\nIt seems like scaling ${companyName} in ${industry} comes with tough trade-offs around ${techStack.split(",")[0] || "architecture"}. What has been the hardest part about balancing feature speed vs technical depth?`;
+  const vossEmail = `Subject: It seems like ${companyName} is tackling hard trade-offs...\n\nHi ${founderName},\n\nIt seems like building ${companyName} at the ${stage} stage requires balancing high technical ambition with tight team focus. How do you decide which architectural bottlenecks to prioritize first?\n\nWould be grateful to hear your perspective if you have 10 minutes next week.\n\nBest,`;
+
+  const methodology_drafts = {
+    combined: {
+      linkedin_draft: combinedLinkedIn,
+      email_draft: combinedEmail,
+      framework_summary: "Default Synthesis — Blends Danielle Robay curiosity, Pain Point discovery, and Chris Voss tactical empathy.",
+    },
+    robay: {
+      linkedin_draft: robayLinkedIn,
+      email_draft: robayEmail,
+      framework_summary: "Danielle Robay Framework — Be Curious. Build Relationships. (Focus on genuine story curiosity)",
+    },
+    painpoint: {
+      linkedin_draft: painpointLinkedIn,
+      email_draft: painpointEmail,
+      framework_summary: "Pain Point Framework — Discover Challenges. Don't Assume. (Focus on real operational bottlenecks)",
+    },
+    voss: {
+      linkedin_draft: vossLinkedIn,
+      email_draft: vossEmail,
+      framework_summary: "Chris Voss Framework — Tactical Empathy & Calibrated Questions (Focus on 'It seems like...' labels & open questions)",
+    },
+  };
+
   return {
     founder_id: cleanId,
     observations: [primaryObs, secondaryObs],
     suggested_questions: suggestedQuestions,
     ways_to_be_helpful: waysToBeHelpful,
-    linkedin_draft: `Hi ${founderName},\n\nI've been following ${companyName}'s work in ${industry} and was really impressed by your approach with ${techStack}. Would love to connect and hear how things are progressing at ${stage}!`,
-    email_draft: `Subject: ${companyName} / ${industry} architecture & scaling\n\nHi ${founderName},\n\nI came across ${companyName} and your focus on ${bio.slice(0, 80)}. Given your tech stack with ${techStack}, I'd love to share some metrics and benchmarks from our engineering team.\n\nLet me know if you'd be open to a brief chat next week.\n\nBest regards,`,
+    linkedin_draft: combinedLinkedIn,
+    email_draft: combinedEmail,
+    methodology_drafts: methodology_drafts,
   };
 }
 
@@ -681,4 +766,291 @@ export async function discoverCandidates(criteria: {
 
   return mockCandidates;
 }
+
+export async function searchWorkspace(rawQuery: string): Promise<SearchResultItem[]> {
+  checkRateLimit("searchWorkspace", 30, 10000);
+  const query = sanitizeString(rawQuery, 100).toLowerCase();
+
+  if (!query || query.length < 2) return [];
+
+  // Try PostgreSQL Supabase RRF search first if configured, with a 500ms strict timeout
+  if (!isMocked) {
+    try {
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Vector service timeout")), 500)
+      );
+
+      const searchPromise = supabase.rpc("hybrid_workspace_search", {
+        query_text: query,
+        query_embedding: null,
+        match_count: 10,
+      });
+
+      const res = (await Promise.race([searchPromise, timeoutPromise])) as any;
+      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+        return res.data.map((item: any) => ({
+          touchpoint_id: item.touchpoint_id,
+          founder_id: item.founder_id,
+          founder_name: item.founder_name,
+          company_name: item.company_name,
+          source_type: item.source_type,
+          snippet: item.snippet,
+          score: item.rrf_score,
+          matched_field: "hybrid_rrf",
+          created_at: new Date().toISOString(),
+        }));
+      }
+    } catch (e: any) {
+      console.warn("Vector service timeout or error — falling back to BM25 full-text search:", e.message || e);
+    }
+  }
+
+  const results: SearchResultItem[] = [];
+
+  // Local storage / Mock DB search with BM25 & RRF-simulated relevance scoring
+  const release = await dbLock.acquire();
+  let founders: Founder[] = [];
+  let touchpoints: Touchpoint[] = [];
+  let timelineEvents: TimelineEvent[] = [];
+  try {
+    const db = getMockDb();
+    founders = db.founders || [];
+    touchpoints = db.touchpoints || [];
+    timelineEvents = db.timelineEvents || [];
+  } finally {
+    release();
+  }
+
+  // Also include candidate pool
+  const candidates = await discoverCandidates({});
+  const allFounders = [...founders, ...candidates];
+
+  for (const f of allFounders) {
+    const isExactName = f.full_name.toLowerCase().includes(query);
+    const isCompany = f.company_name.toLowerCase().includes(query);
+    const isIndustry = f.industry.toLowerCase().includes(query);
+    const isTech = (f.tech_stack || "").toLowerCase().includes(query);
+    const isBio = (f.bio || "").toLowerCase().includes(query);
+
+    if (isExactName || isCompany || isIndustry || isTech || isBio) {
+      // Compute RRF score simulation (0.6 exact BM25 + 0.4 field match)
+      const bm25Rank = isExactName ? 1 : isCompany ? 2 : 3;
+      const vecRank = isTech ? 1 : isBio ? 2 : 5;
+      const rrfScore = Number(((0.6 / (60 + bm25Rank)) + (0.4 / (60 + vecRank))).toFixed(4));
+
+      results.push({
+        founder_id: f.id,
+        founder_name: f.full_name,
+        company_name: f.company_name,
+        source_type: "profile",
+        snippet: `${f.company_name} (${f.industry}) — ${f.bio}`,
+        score: rrfScore,
+        matched_field: isExactName ? "name" : isCompany ? "company" : isTech ? "tech_stack" : "bio",
+        created_at: f.created_at,
+      });
+    }
+  }
+
+  for (const t of touchpoints) {
+    if (t.content.toLowerCase().includes(query)) {
+      const f = allFounders.find((founder) => founder.id === t.founder_id);
+      results.push({
+        touchpoint_id: t.id,
+        founder_id: t.founder_id,
+        founder_name: f?.full_name || "Saved Founder",
+        company_name: f?.company_name || "Workspace Profile",
+        source_type: t.source_type,
+        snippet: t.content.slice(0, 180),
+        score: 0.015,
+        matched_field: "touchpoint_content",
+        created_at: t.created_at,
+      });
+    }
+  }
+
+  for (const te of timelineEvents) {
+    if (
+      te.summary.toLowerCase().includes(query) ||
+      te.open_loops.some((l) => l.toLowerCase().includes(query)) ||
+      te.promises.some((p) => p.toLowerCase().includes(query))
+    ) {
+      const f = allFounders.find((founder) => founder.id === te.founder_id);
+      results.push({
+        founder_id: te.founder_id,
+        founder_name: f?.full_name || "Saved Founder",
+        company_name: f?.company_name || "Workspace Profile",
+        source_type: "timeline_event",
+        snippet: `[${te.event_type}] ${te.summary}`,
+        score: 0.014,
+        matched_field: "timeline_summary",
+        created_at: te.occurred_at,
+      });
+    }
+  }
+
+  // Deduplicate by founder & sort by RRF score
+  results.sort((a, b) => b.score - a.score);
+  return results.slice(0, 10);
+}
+
+export async function analyzeWorkspacePatterns(): Promise<PatternCard[]> {
+  checkRateLimit("analyzeWorkspacePatterns", 15, 10000);
+
+  const release = await dbLock.acquire();
+  let founders: Founder[] = [];
+  let touchpoints: Touchpoint[] = [];
+  try {
+    const db = getMockDb();
+    founders = db.founders || [];
+    touchpoints = db.touchpoints || [];
+  } finally {
+    release();
+  }
+
+  const candidatePool = await discoverCandidates({});
+  const allFounders = [...founders, ...candidatePool];
+  const totalFounders = allFounders.length;
+
+  if (totalFounders === 0) return [];
+
+  // Seed pattern clusters based on extracted Pydantic topics, industry signals, and touchpoint depth
+  const topicMap = new Map<string, Array<{ founder_id: string; founder_name: string; company_name: string; snippet: string; mention_count: number }>>();
+
+  for (const f of allFounders) {
+    const topics: string[] = [];
+    if (f.industry) topics.push(f.industry);
+    if (f.tech_stack) {
+      f.tech_stack.split(",").forEach((ts) => topics.push(ts.trim()));
+    }
+    if (f.bio) {
+      if (f.bio.toLowerCase().includes("eval") || f.bio.toLowerCase().includes("testing")) topics.push("Evaluation Frameworks");
+      if (f.bio.toLowerCase().includes("rag") || f.bio.toLowerCase().includes("search")) topics.push("RRF & Hybrid Search");
+      if (f.bio.toLowerCase().includes("security") || f.bio.toLowerCase().includes("guard")) topics.push("Enterprise Trust & Security");
+      if (f.bio.toLowerCase().includes("infra") || f.bio.toLowerCase().includes("kubernetes")) topics.push("Infrastructure Scaling");
+      if (f.bio.toLowerCase().includes("protein") || f.bio.toLowerCase().includes("biotech")) topics.push("Generative Bio Systems");
+      if (f.bio.toLowerCase().includes("zero-knowledge") || f.bio.toLowerCase().includes("settlement")) topics.push("Zero-Knowledge Proofs");
+    }
+
+    const founderTouchpoints = touchpoints.filter((t) => t.founder_id === f.id);
+
+    for (const top of topics) {
+      if (!top) continue;
+      // Calculate touchpoint mention depth
+      const tpMatches = founderTouchpoints.filter((t) => t.content.toLowerCase().includes(top.toLowerCase())).length;
+      const mentionCount = 1 + tpMatches;
+
+      const existing = topicMap.get(top) || [];
+      if (!existing.some((e) => e.founder_id === f.id)) {
+        existing.push({
+          founder_id: f.id,
+          founder_name: f.full_name,
+          company_name: f.company_name,
+          snippet: f.bio || `${f.company_name} building in ${f.industry}`,
+          mention_count: mentionCount,
+        });
+      }
+      topicMap.set(top, existing);
+    }
+  }
+
+  const patternCards: PatternCard[] = [];
+
+  topicMap.forEach((contributing, topic) => {
+    const count = contributing.length;
+    if (count >= 2) {
+      const totalMentions = contributing.reduce((sum, c) => sum + c.mention_count, 0);
+      const avgDepth = totalMentions / count;
+
+      // Formula: (N_founders / N_total) * min(avgDepth / 2.0, 1.0)
+      const patternScore = Number(((count / totalFounders) * Math.min(avgDepth / 2.0, 1.0)).toFixed(2));
+
+      // Strictly enforce confidence metric threshold: require at least 2 founders AND score >= 0.15
+      if (patternScore >= 0.15) {
+        let category: PatternCard["category"] = "topic";
+        if (topic.includes("Trust") || topic.includes("Security")) category = "pain_point";
+        if (topic.includes("Evaluation") || topic.includes("Frameworks")) category = "hiring_signal";
+
+        patternCards.push({
+          id: `pattern-${topic.toLowerCase().replace(/ /g, "-")}`,
+          topic: topic,
+          category: category,
+          founder_count: count,
+          pattern_score: patternScore,
+          contributing_founders: contributing.map(({ mention_count, ...rest }) => rest),
+          summary: `${count} founders across your workspace are prioritizing ${topic} as a core focus area based on verified touchpoint evidence.`,
+        });
+      }
+    }
+  });
+
+  patternCards.sort((a, b) => b.pattern_score - a.pattern_score);
+  return patternCards;
+}
+
+export async function getFounderTimelineNodes(founderId: string): Promise<TimelineStageNode[]> {
+  checkRateLimit("getFounderTimelineNodes", 60, 10000);
+  const cleanId = sanitizeString(founderId, 100);
+
+  const details = await getFounderDetails(cleanId);
+  const touchpoints = details.touchpoints;
+  const events = details.timelineEvents;
+
+  const hasDiscovery = true;
+  const hasFirstNote = touchpoints.length > 0;
+  const hasMeeting = touchpoints.some((t) => t.source_type === "transcript" || t.source_type === "meeting") || events.some((e) => e.event_type === "meeting");
+  const hasDeliverable = events.some((e) => (e.open_loops && e.open_loops.length > 0) || (e.promises && e.promises.length > 0));
+  const hasRapport = touchpoints.length >= 2;
+
+  const openLoops = events.flatMap((e) => e.open_loops || []);
+  const promises = events.flatMap((e) => e.promises || []);
+
+  const nodes: TimelineStageNode[] = [
+    {
+      stage_id: "discovery",
+      title: "1. Signal Discovery",
+      status: "completed",
+      occurred_at: details.founder?.created_at || new Date().toISOString(),
+      details: `Profile created for ${details.founder?.full_name || "Founder"} (${details.founder?.company_name || "Company"}). Public signals indexed.`,
+      open_loops: [],
+      promises: [],
+    },
+    {
+      stage_id: "first_note",
+      title: "2. Initial Touchpoint",
+      status: hasFirstNote ? "completed" : "current",
+      occurred_at: touchpoints[touchpoints.length - 1]?.created_at,
+      details: hasFirstNote ? `Logged ${touchpoints[touchpoints.length - 1].source_type} interaction note.` : "Awaiting first interaction note or message log.",
+      open_loops: [],
+      promises: [],
+    },
+    {
+      stage_id: "meeting",
+      title: "3. Deep Conversation",
+      status: hasMeeting ? "completed" : hasFirstNote ? "current" : "upcoming",
+      occurred_at: events.find((e) => e.event_type === "meeting")?.occurred_at,
+      details: hasMeeting ? "Completed 1-on-1 meeting / transcript logged." : "Prepare conversation brief before reaching out.",
+      open_loops: [],
+      promises: [],
+    },
+    {
+      stage_id: "deliverable",
+      title: "4. Promises & Open Loops",
+      status: hasDeliverable ? "completed" : hasMeeting ? "current" : "upcoming",
+      details: hasDeliverable ? `${openLoops.length} open loops, ${promises.length} promises active.` : "No active open loops recorded.",
+      open_loops: openLoops,
+      promises: promises,
+    },
+    {
+      stage_id: "active_rapport",
+      title: "5. Active Relationship",
+      status: hasRapport ? "completed" : "upcoming",
+      details: hasRapport ? "Ongoing relationship maintained with regular interaction notes." : "Log regular follow-ups to maintain momentum.",
+      open_loops: [],
+      promises: [],
+    },
+  ];
+
+  return nodes;
+}
+
 

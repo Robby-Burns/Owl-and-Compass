@@ -23,19 +23,31 @@ import {
   Sparkles,
   Building2,
   Sun,
-  Moon
+  Moon,
+  BarChart2,
+  RotateCw,
+  GitCommit,
+  CheckCircle2,
+  Clock,
+  Circle
 } from "lucide-react";
 import {
   Founder,
   Touchpoint,
   TimelineEvent,
   PrepBrief,
+  SearchResultItem,
+  PatternCard,
+  TimelineStageNode,
   createFounder,
   saveTouchpoint,
   getFounderDetails,
   generatePrepBrief,
   deleteFounder,
-  discoverCandidates
+  discoverCandidates,
+  searchWorkspace,
+  analyzeWorkspacePatterns,
+  getFounderTimelineNodes
 } from "@/app/actions";
 
 interface FounderDashboardProps {
@@ -61,13 +73,22 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
   const [activeTab, setActiveTab] = useState<"timeline" | "brief">("timeline");
   
   // Discovery and Filter States
-  const [sidebarTab, setSidebarTab] = useState<"saved" | "discover">("saved");
+  const [sidebarTab, setSidebarTab] = useState<"saved" | "discover" | "patterns">("saved");
   const [searchFilter, setSearchFilter] = useState("");
   const [discoveryQuery, setDiscoveryQuery] = useState("");
   const [discoveredCandidates, setDiscoveredCandidates] = useState<Founder[]>([]);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  
+  // Phase 2: Global Search, Patterns, and Timeline Nodes
+  const [globalSearchQuery, setGlobalSearchQuery] = useState("");
+  const [globalSearchResults, setGlobalSearchResults] = useState<SearchResultItem[]>([]);
+  const [isSearchingGlobal, setIsSearchingGlobal] = useState(false);
+  const [showGlobalSearchModal, setShowGlobalSearchModal] = useState(false);
+  const [patternCards, setPatternCards] = useState<PatternCard[]>([]);
+  const [loadingPatterns, setLoadingPatterns] = useState(false);
+  const [timelineStageNodes, setTimelineStageNodes] = useState<TimelineStageNode[]>([]);
   
   // Selected founder detailed data
   const [selectedFounder, setSelectedFounder] = useState<Founder | null>(null);
@@ -79,6 +100,7 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
   const [selectedCandidate, setSelectedCandidate] = useState<Founder | null>(null);
   const [selectedCandidateBrief, setSelectedCandidateBrief] = useState<PrepBrief | null>(null);
   const [loadingCandidateBrief, setLoadingCandidateBrief] = useState(false);
+  const [outreachMethodology, setOutreachMethodology] = useState<"combined" | "robay" | "painpoint" | "voss">("combined");
 
   // Form states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -115,11 +137,43 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
         setTouchpoints(details.touchpoints);
         setTimelineEvents(details.timelineEvents);
         setPrepBrief(null);
+        const nodes = await getFounderTimelineNodes(id);
+        setTimelineStageNodes(nodes);
       }
     } catch (err) {
       console.error(err);
     } finally {
       setLoadingDetails(false);
+    }
+  };
+
+  const handleFetchPatterns = async () => {
+    setSidebarTab("patterns");
+    setLoadingPatterns(true);
+    try {
+      const patterns = await analyzeWorkspacePatterns();
+      setPatternCards(patterns);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingPatterns(false);
+    }
+  };
+
+  const handleGlobalSearch = async (query: string) => {
+    setGlobalSearchQuery(query);
+    if (!query || query.trim().length < 2) {
+      setGlobalSearchResults([]);
+      return;
+    }
+    setIsSearchingGlobal(true);
+    try {
+      const results = await searchWorkspace(query);
+      setGlobalSearchResults(results);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSearchingGlobal(false);
     }
   };
 
@@ -274,8 +328,16 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
 
   return (
     <div className={`flex flex-col min-h-screen w-full lg:flex-row relative ${theme}`}>
-      {/* Top Right Theme Toggle Floating Widget */}
+      {/* Top Right Theme & Search Floating Widgets */}
       <div className="fixed top-4 right-6 z-50 flex items-center gap-2">
+        <button
+          onClick={() => setShowGlobalSearchModal(true)}
+          className="px-3.5 py-2 rounded-xl bg-[#2F3640] hover:bg-[#C69C35] text-[#F5D77F] hover:text-[#1D2228] border border-[#C69C35]/50 transition-all cursor-pointer flex items-center gap-2 shadow-xl shadow-black/30 font-extrabold text-xs"
+          title="Global RRF Workspace Search (Pillar 10)"
+        >
+          <Search className="w-4 h-4" />
+          <span className="hidden sm:inline">Global Search</span>
+        </button>
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           className="px-3.5 py-2 rounded-xl bg-[#2F3640] hover:bg-[#C69C35] text-[#F5D77F] hover:text-[#1D2228] border border-[#C69C35]/50 transition-all cursor-pointer flex items-center gap-2 shadow-xl shadow-black/30 font-extrabold text-xs"
@@ -284,12 +346,12 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
           {theme === "dark" ? (
             <>
               <Sun className="w-4 h-4 text-amber-300" />
-              <span>Light Mode</span>
+              <span className="hidden sm:inline">Light Mode</span>
             </>
           ) : (
             <>
               <Moon className="w-4 h-4 text-amber-600" />
-              <span>Dark Mode</span>
+              <span className="hidden sm:inline">Dark Mode</span>
             </>
           )}
         </button>
@@ -325,31 +387,42 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
 
 
         {/* Sidebar Navigation Tabs */}
-        <div className="px-4 pt-3 pb-2 flex items-center gap-2 border-b border-[#C69C35]/20 bg-[#1D2228]/50">
+        <div className="px-3 pt-3 pb-2 flex items-center gap-1.5 border-b border-[#C69C35]/20 bg-[#1D2228]/50 overflow-x-auto">
           <button
             onClick={() => setSidebarTab("saved")}
-            className={`flex-1 py-2 px-3 rounded-lg text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`py-2 px-2.5 rounded-lg text-[11px] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1 shrink-0 ${
               sidebarTab === "saved"
                 ? "bg-[#C69C35] text-[#1D2228] shadow-md shadow-[#C69C35]/20"
                 : "bg-[#2F3640]/70 text-amber-100/70 hover:text-[#C69C35] hover:bg-[#2F3640]"
             }`}
           >
             <User className="w-3.5 h-3.5" />
-            Saved Profiles ({founders.length})
+            Saved ({founders.length})
           </button>
           <button
             onClick={() => {
               setSidebarTab("discover");
               if (discoveredCandidates.length === 0) handleSearchCandidates();
             }}
-            className={`flex-1 py-2 px-3 rounded-lg text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`py-2 px-2.5 rounded-lg text-[11px] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1 shrink-0 ${
               sidebarTab === "discover"
                 ? "bg-[#C69C35] text-[#1D2228] shadow-md shadow-[#C69C35]/20"
                 : "bg-[#2F3640]/70 text-amber-100/70 hover:text-[#C69C35] hover:bg-[#2F3640]"
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            Find Candidates
+            Candidates
+          </button>
+          <button
+            onClick={handleFetchPatterns}
+            className={`py-2 px-2.5 rounded-lg text-[11px] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1 shrink-0 ${
+              sidebarTab === "patterns"
+                ? "bg-[#C69C35] text-[#1D2228] shadow-md shadow-[#C69C35]/20"
+                : "bg-[#2F3640]/70 text-amber-100/70 hover:text-[#C69C35] hover:bg-[#2F3640]"
+            }`}
+          >
+            <BarChart2 className="w-3.5 h-3.5" />
+            Patterns
           </button>
         </div>
 
@@ -438,7 +511,7 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                   </div>
                 ))}
             </>
-          ) : (
+          ) : sidebarTab === "discover" ? (
             <div className="space-y-4">
               <form onSubmit={handleSearchCandidates} className="space-y-2">
                 <div className="relative">
@@ -512,6 +585,52 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                   </div>
                 ))}
               </div>
+            </div>
+          ) : (
+            /* Pattern Analysis Sidebar View (Pillar 9) */
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-extrabold text-[#C69C35] uppercase tracking-wider">Workspace Patterns</p>
+                <button
+                  onClick={handleFetchPatterns}
+                  className="text-xs text-amber-200/80 hover:text-white flex items-center gap-1 cursor-pointer font-semibold"
+                >
+                  <RotateCw className={`w-3 h-3 ${loadingPatterns ? "animate-spin text-[#C69C35]" : ""}`} />
+                  Refresh
+                </button>
+              </div>
+
+              {loadingPatterns ? (
+                <div className="text-center py-8 text-amber-200/70 space-y-2">
+                  <Loader2 className="w-6 h-6 animate-spin text-[#C69C35] mx-auto" />
+                  <p className="text-xs">Clustering workspace topics & pain points...</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {patternCards.map((pat) => (
+                    <div key={pat.id} className="p-3.5 rounded-xl bg-[#2F3640]/80 border border-[#C69C35]/30 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-sm text-white">{pat.topic}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-[#C69C35]/20 text-[#F5D77F] font-bold border border-[#C69C35]/30">
+                          Score: {pat.pattern_score}
+                        </span>
+                      </div>
+                      <p className="text-xs text-amber-100/90 leading-relaxed">{pat.summary}</p>
+                      <div className="pt-1 flex flex-wrap gap-1">
+                        {pat.contributing_founders.map((cf) => (
+                          <button
+                            key={cf.founder_id}
+                            onClick={() => handleSelectFounder(cf.founder_id)}
+                            className="text-[10px] px-2 py-0.5 rounded bg-[#1D2228] text-amber-200 hover:text-white border border-[#C69C35]/30 transition-all cursor-pointer font-medium"
+                          >
+                            {cf.founder_name} ({cf.company_name})
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -650,13 +769,45 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
 
                   {/* Outreach Generation Drafts */}
                   <div className="glass-panel p-6 rounded-2xl space-y-4 border-[#C69C35]/30">
-                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                      <MessageSquare className="w-5 h-5 text-[#C69C35]" />
-                      Tailored Outreach Drafts
-                    </h3>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#C69C35]/20 pb-3">
+                      <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5 text-[#C69C35]" />
+                        Outreach Assistant (Pillar 5)
+                      </h3>
+
+                      {/* Methodology Toggles */}
+                      <div className="flex flex-wrap gap-1.5 bg-[#1D2228] p-1 rounded-xl border border-[#C69C35]/30">
+                        {[
+                          { id: "combined", label: "Combined (Default)" },
+                          { id: "robay", label: "Danielle Robay" },
+                          { id: "painpoint", label: "Pain Point" },
+                          { id: "voss", label: "Chris Voss" },
+                        ].map((m) => (
+                          <button
+                            key={m.id}
+                            onClick={() => setOutreachMethodology(m.id as any)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                              outreachMethodology === m.id
+                                ? "bg-[#C69C35] text-[#1D2228] shadow-sm"
+                                : "text-amber-200/70 hover:text-white hover:bg-[#2F3640]"
+                            }`}
+                          >
+                            {m.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Framework Summary Badge */}
+                    {selectedCandidateBrief.methodology_drafts?.[outreachMethodology] && (
+                      <div className="text-xs text-amber-200/90 bg-[#1D2228]/90 p-2.5 rounded-lg border border-[#C69C35]/30 font-medium">
+                        <span className="font-bold text-[#C69C35]">Framework Lens: </span>
+                        {selectedCandidateBrief.methodology_drafts[outreachMethodology].framework_summary}
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {selectedCandidateBrief.linkedin_draft && (
+                      {selectedCandidateBrief.methodology_drafts?.[outreachMethodology]?.linkedin_draft && (
                         <div className="p-4 rounded-xl bg-[#1D2228]/80 border border-[#C69C35]/30 space-y-2 relative">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-bold text-[#C69C35] uppercase tracking-wider flex items-center gap-1.5">
@@ -664,18 +815,20 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                               LinkedIn InMail Draft
                             </span>
                             <button
-                              onClick={() => handleCopyText(selectedCandidateBrief.linkedin_draft || "", "cand_linkedin")}
+                              onClick={() => handleCopyText(selectedCandidateBrief.methodology_drafts![outreachMethodology].linkedin_draft, "cand_linkedin")}
                               className="px-2.5 py-1 bg-[#C69C35]/20 hover:bg-[#C69C35] text-[#F5D77F] hover:text-[#1D2228] text-xs font-bold rounded transition-all flex items-center gap-1 cursor-pointer border border-[#C69C35]/30"
                             >
                               {copiedField === "cand_linkedin" ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                               {copiedField === "cand_linkedin" ? "Copied" : "Copy"}
                             </button>
                           </div>
-                          <p className="text-sm text-amber-100 whitespace-pre-wrap font-mono">{selectedCandidateBrief.linkedin_draft}</p>
+                          <p className="text-sm text-amber-100 whitespace-pre-wrap font-mono">
+                            {selectedCandidateBrief.methodology_drafts[outreachMethodology].linkedin_draft}
+                          </p>
                         </div>
                       )}
 
-                      {selectedCandidateBrief.email_draft && (
+                      {selectedCandidateBrief.methodology_drafts?.[outreachMethodology]?.email_draft && (
                         <div className="p-4 rounded-xl bg-[#1D2228]/80 border border-[#C69C35]/30 space-y-2 relative">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-bold text-[#C69C35] uppercase tracking-wider flex items-center gap-1.5">
@@ -683,14 +836,16 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                               Email Outreach Draft
                             </span>
                             <button
-                              onClick={() => handleCopyText(selectedCandidateBrief.email_draft || "", "cand_email")}
+                              onClick={() => handleCopyText(selectedCandidateBrief.methodology_drafts![outreachMethodology].email_draft, "cand_email")}
                               className="px-2.5 py-1 bg-[#C69C35]/20 hover:bg-[#C69C35] text-[#F5D77F] hover:text-[#1D2228] text-xs font-bold rounded transition-all flex items-center gap-1 cursor-pointer border border-[#C69C35]/30"
                             >
                               {copiedField === "cand_email" ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                               {copiedField === "cand_email" ? "Copied" : "Copy"}
                             </button>
                           </div>
-                          <p className="text-sm text-amber-100 whitespace-pre-wrap font-mono">{selectedCandidateBrief.email_draft}</p>
+                          <p className="text-sm text-amber-100 whitespace-pre-wrap font-mono">
+                            {selectedCandidateBrief.methodology_drafts[outreachMethodology].email_draft}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -816,7 +971,60 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
 
               {/* Tabs Content */}
               {activeTab === "timeline" ? (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="space-y-6">
+                  {/* 5-Stage Visual Node Graph (Pillar 8) */}
+                  <div className="glass-panel p-5 rounded-2xl space-y-4 border-[#C69C35]/40">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-extrabold text-[#C69C35] uppercase tracking-wider flex items-center gap-2">
+                        <GitCommit className="w-4 h-4 text-[#C69C35]" />
+                        Visual Relationship Timeline Graph (Pillar 8)
+                      </h3>
+                      <span className="text-xs text-amber-200/80 font-medium">5 Sequential Relationship Stages</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 pt-1">
+                      {timelineStageNodes.map((node) => (
+                        <div
+                          key={node.stage_id}
+                          className={`p-3 rounded-xl border flex flex-col justify-between space-y-2 relative transition-all ${
+                            node.status === "completed"
+                              ? "bg-[#C69C35]/15 border-[#C69C35]/60 text-white"
+                              : node.status === "current"
+                              ? "bg-amber-950/40 border-amber-500/60 ring-1 ring-amber-500/30 text-amber-100"
+                              : "bg-[#1D2228]/50 border-[#C69C35]/20 text-amber-100/40"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-extrabold text-[11px] uppercase tracking-wider text-[#C69C35]">{node.title}</span>
+                            {node.status === "completed" ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" viewBox="0 0 24 24" />
+                            ) : node.status === "current" ? (
+                              <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse shrink-0" viewBox="0 0 24 24" />
+                            ) : (
+                              <Circle className="w-3.5 h-3.5 text-slate-600 shrink-0" viewBox="0 0 24 24" />
+                            )}
+                          </div>
+                          <p className="text-[11px] line-clamp-2 leading-relaxed">{node.details}</p>
+                          
+                          {/* Node Indicators */}
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            {node.open_loops && node.open_loops.length > 0 && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-600/20 text-amber-300 font-bold border border-amber-500/30">
+                                {node.open_loops.length} Open Loops
+                              </span>
+                            )}
+                            {node.promises && node.promises.length > 0 && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-600/20 text-emerald-300 font-bold border border-emerald-500/30">
+                                {node.promises.length} Promises
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {/* Left Column: Form & Recent Touchpoints */}
                   <div className="lg:col-span-1 space-y-6">
                     <div className="glass-panel p-6 rounded-2xl space-y-4 border-[#C69C35]/30">
@@ -916,6 +1124,7 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                     </div>
                   </div>
                 </div>
+              </div>
               ) : (
                 /* Brief Tab Content */
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -990,11 +1199,43 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                       </ul>
                     </div>
 
-                    {/* Outreach Drafts */}
+                    {/* Outreach Generation Drafts */}
                     <div className="glass-panel p-6 rounded-2xl space-y-6 border-[#C69C35]/30">
-                      <h3 className="text-lg font-bold text-white">Outreach Generation</h3>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#C69C35]/20 pb-3">
+                        <h3 className="text-lg font-bold text-white">Outreach Assistant (Pillar 5)</h3>
 
-                      {prepBrief?.linkedin_draft && (
+                        {/* Methodology Toggles */}
+                        <div className="flex flex-wrap gap-1 bg-[#1D2228] p-1 rounded-xl border border-[#C69C35]/30">
+                          {[
+                            { id: "combined", label: "Combined (Default)" },
+                            { id: "robay", label: "Danielle Robay" },
+                            { id: "painpoint", label: "Pain Point" },
+                            { id: "voss", label: "Chris Voss" },
+                          ].map((m) => (
+                            <button
+                              key={m.id}
+                              onClick={() => setOutreachMethodology(m.id as any)}
+                              className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                                outreachMethodology === m.id
+                                  ? "bg-[#C69C35] text-[#1D2228] shadow-sm"
+                                  : "text-amber-200/70 hover:text-white hover:bg-[#2F3640]"
+                              }`}
+                            >
+                              {m.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Framework Summary Badge */}
+                      {prepBrief?.methodology_drafts?.[outreachMethodology] && (
+                        <div className="text-xs text-amber-200/90 bg-[#1D2228]/90 p-2.5 rounded-lg border border-[#C69C35]/30 font-medium">
+                          <span className="font-bold text-[#C69C35]">Framework Lens: </span>
+                          {prepBrief.methodology_drafts[outreachMethodology].framework_summary}
+                        </div>
+                      )}
+
+                      {(prepBrief?.methodology_drafts?.[outreachMethodology]?.linkedin_draft || prepBrief?.linkedin_draft) && (
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-xs text-amber-200/80">
                             <span className="flex items-center gap-1.5 font-bold text-[#C69C35]">
@@ -1002,7 +1243,12 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                               LinkedIn InMail
                             </span>
                             <button
-                              onClick={() => handleCopyText(prepBrief.linkedin_draft!, "linkedin")}
+                              onClick={() =>
+                                handleCopyText(
+                                  prepBrief?.methodology_drafts?.[outreachMethodology]?.linkedin_draft || prepBrief?.linkedin_draft || "",
+                                  "linkedin"
+                                )
+                              }
                               className="px-2 py-0.5 rounded bg-[#C69C35]/20 hover:bg-[#C69C35] text-[#F5D77F] hover:text-[#1D2228] transition-all cursor-pointer flex items-center gap-1 font-bold border border-[#C69C35]/30"
                             >
                               {copiedField === "linkedin" ? (
@@ -1014,12 +1260,12 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                             </button>
                           </div>
                           <div className="bg-[#1D2228] border border-[#C69C35]/30 p-3.5 rounded-xl text-sm text-amber-100 font-mono whitespace-pre-wrap select-all">
-                            {prepBrief.linkedin_draft}
+                            {prepBrief?.methodology_drafts?.[outreachMethodology]?.linkedin_draft || prepBrief?.linkedin_draft}
                           </div>
                         </div>
                       )}
 
-                      {prepBrief?.email_draft && (
+                      {(prepBrief?.methodology_drafts?.[outreachMethodology]?.email_draft || prepBrief?.email_draft) && (
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-xs text-amber-200/80">
                             <span className="flex items-center gap-1.5 font-bold text-[#C69C35]">
@@ -1027,7 +1273,12 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                               Email Outline
                             </span>
                             <button
-                              onClick={() => handleCopyText(prepBrief.email_draft!, "email")}
+                              onClick={() =>
+                                handleCopyText(
+                                  prepBrief?.methodology_drafts?.[outreachMethodology]?.email_draft || prepBrief?.email_draft || "",
+                                  "email"
+                                )
+                              }
                               className="px-2 py-0.5 rounded bg-[#C69C35]/20 hover:bg-[#C69C35] text-[#F5D77F] hover:text-[#1D2228] transition-all cursor-pointer flex items-center gap-1 font-bold border border-[#C69C35]/30"
                             >
                               {copiedField === "email" ? (
@@ -1039,7 +1290,7 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                             </button>
                           </div>
                           <div className="bg-[#1D2228] border border-[#C69C35]/30 p-3.5 rounded-xl text-sm text-amber-100 font-mono whitespace-pre-wrap select-all">
-                            {prepBrief.email_draft}
+                            {prepBrief?.methodology_drafts?.[outreachMethodology]?.email_draft || prepBrief?.email_draft}
                           </div>
                         </div>
                       )}
@@ -1187,6 +1438,87 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Global RRF Hybrid Search Modal (Pillar 10) */}
+      {showGlobalSearchModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1D2228]/85 backdrop-blur-md p-4">
+          <div className="w-full max-w-2xl glass-panel rounded-2xl overflow-hidden shadow-2xl relative border-[#C69C35]/50 flex flex-col max-h-[85vh]">
+            <div className="p-5 border-b border-[#C69C35]/30 bg-[#2F3640] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Search className="w-5 h-5 text-[#C69C35]" />
+                <div>
+                  <h3 className="text-lg font-bold text-white gold-gradient-text">Global Workspace Hybrid Search</h3>
+                  <p className="text-xs text-amber-200/80">Reciprocal Rank Fusion (RRF) across profiles, notes, & touchpoints</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowGlobalSearchModal(false)}
+                className="text-amber-200 hover:text-white transition-all cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 border-b border-[#C69C35]/20 bg-[#1D2228]">
+              <div className="relative">
+                <Search className="w-4 h-4 text-amber-400/60 absolute left-3 top-3" />
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder='Search by query e.g. "Who mentioned RAG?", "Who discussed evaluation?"...'
+                  value={globalSearchQuery}
+                  onChange={(e) => handleGlobalSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-[#2F3640] border border-[#C69C35]/30 rounded-xl text-sm text-amber-100 placeholder-amber-200/40 focus:outline-none focus:border-[#C69C35]"
+                />
+                {isSearchingGlobal && (
+                  <Loader2 className="w-4 h-4 text-[#C69C35] animate-spin absolute right-3 top-3" />
+                )}
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#2F3640]/90">
+              {globalSearchResults.length === 0 ? (
+                <div className="text-center py-10 text-amber-200/60 text-sm">
+                  {globalSearchQuery ? "No matching workspace items or touchpoints found." : "Type a natural language query above to perform global hybrid search."}
+                </div>
+              ) : (
+                globalSearchResults.map((res, index) => (
+                  <div
+                    key={index}
+                    onClick={() => {
+                      setShowGlobalSearchModal(false);
+                      handleSelectFounder(res.founder_id);
+                    }}
+                    className="p-4 rounded-xl bg-[#1D2228] border border-[#C69C35]/30 hover:border-[#C69C35] cursor-pointer transition-all space-y-1.5 group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-white text-sm group-hover:text-[#C69C35]">{res.founder_name}</span>
+                        <span className="text-xs text-amber-200/80">({res.company_name})</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-[#C69C35]/20 text-[#F5D77F] font-bold border border-[#C69C35]/30">
+                          RRF Score: {res.score}
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-[#2F3640] text-amber-100 font-mono">
+                          {res.matched_field}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-amber-100/90 leading-relaxed font-mono bg-[#2F3640]/50 p-2.5 rounded-lg border border-[#C69C35]/20">
+                      {res.snippet}
+                    </p>
+                    <div className="text-[10px] text-amber-200/60 flex items-center justify-between pt-1">
+                      <span>Source: {res.source_type}</span>
+                      <span className="text-[#C69C35] group-hover:underline">Open Workspace Profile →</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       )}
