@@ -512,30 +512,73 @@ export async function generatePrepBrief(founderId: string): Promise<PrepBrief> {
   const stage = founder?.company_stage || "Seed";
   const bio = founder?.bio || "Building technical infrastructure.";
 
-  // If OpenRouter API key is configured, invoke live LLM pipeline
-  const openRouterKey = process.env.OPENROUTER_API_KEY;
-  if (openRouterKey) {
+  // Resolve Generic LLM credentials from environment (OpenRouter, Gemini, OpenAI, Groq, etc.)
+  const apiKey =
+    process.env.LLM_API_KEY ||
+    process.env.OPENROUTER_API_KEY ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.OPENAI_API_KEY ||
+    process.env.GROQ_API_KEY ||
+    "";
+
+  const model =
+    process.env.LLM_MODEL ||
+    (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
+      ? "gemini-2.0-flash"
+      : process.env.OPENROUTER_API_KEY
+      ? "anthropic/claude-3.5-sonnet"
+      : "gpt-4o");
+
+  if (apiKey) {
+    let baseUrl = process.env.LLM_BASE_URL;
+    if (!baseUrl) {
+      if (
+        process.env.OPENROUTER_API_KEY ||
+        model.includes("/") ||
+        model.startsWith("anthropic/") ||
+        model.startsWith("openai/") ||
+        model.startsWith("google/")
+      ) {
+        baseUrl = "https://openrouter.ai/api/v1";
+      } else if (
+        process.env.GEMINI_API_KEY ||
+        process.env.GOOGLE_API_KEY ||
+        model.startsWith("gemini")
+      ) {
+        baseUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
+      } else if (process.env.GROQ_API_KEY || model.startsWith("llama")) {
+        baseUrl = "https://api.groq.com/openai/v1";
+      } else {
+        baseUrl = "https://api.openai.com/v1";
+      }
+    }
+
     try {
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const endpoint = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${openRouterKey}`,
+          Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "anthropic/claude-3.5-sonnet",
+          model: model,
           messages: [
             {
               role: "system",
-              content: "You are an expert venture research analyst. Produce JSON output with keys: observations (array of objects with observation, hypothesis, evidence_urls), suggested_questions (array of strings), ways_to_be_helpful (array of strings), linkedin_draft (string), email_draft (string)."
+              content:
+                "You are an expert venture research analyst. Produce JSON output with keys: observations (array of objects with observation, hypothesis, evidence_urls), suggested_questions (array of strings), ways_to_be_helpful (array of strings), linkedin_draft (string), email_draft (string).",
             },
             {
               role: "user",
-              content: `Generate a research brief for founder ${founderName} at ${companyName} (${stage}, ${industry}, tech stack: ${techStack}). Bio: ${bio}. Logged touchpoints: ${JSON.stringify(touchpoints.map(t => t.content))}`
-            }
+              content: `Generate a research brief for founder ${founderName} at ${companyName} (${stage}, ${industry}, tech stack: ${techStack}). Bio: ${bio}. Logged touchpoints: ${JSON.stringify(
+                touchpoints.map((t) => t.content)
+              )}`,
+            },
           ],
-          response_format: { type: "json_object" }
-        })
+          response_format: { type: "json_object" },
+        }),
       });
 
       if (response.ok) {
@@ -551,7 +594,7 @@ export async function generatePrepBrief(founderId: string): Promise<PrepBrief> {
         };
       }
     } catch (e) {
-      console.error("OpenRouter live API call notice:", e);
+      console.error("Generic LLM live API call notice:", e);
     }
   }
 
