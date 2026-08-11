@@ -10,10 +10,9 @@ import {
   discoverCandidates,
   searchWorkspace,
   analyzeWorkspacePatterns,
-  getFounderTimelineNodes,
-  escapeHtml,
-  sanitizeString
+  getFounderTimelineNodes
 } from "./actions";
+import { escapeHtml, sanitizeString } from "../lib/utils";
 
 test("Next.js Server Actions integration suite", async (t) => {
   await t.test("should retrieve default founders list", async () => {
