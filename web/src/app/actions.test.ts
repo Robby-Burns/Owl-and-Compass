@@ -179,6 +179,43 @@ test("Next.js Server Actions integration suite", async (t) => {
     }
   });
 
+  await t.test("should properly label fallback mock candidates with is_mock: true", async () => {
+    const candidates = await discoverCandidates({ query: "non-existent-founder-query" });
+    assert.ok(candidates.length > 0);
+    assert.strictEqual(candidates[0].is_mock, true);
+  });
+
+  await t.test("should merge and deduplicate search results on founder_id", async () => {
+    const query = "Maya";
+    const results = await searchWorkspace(query);
+    assert.ok(results.length > 0);
+    const seen = new Set();
+    for (const r of results) {
+      assert.ok(!seen.has(r.founder_id), `Duplicate founder_id found in results: ${r.founder_id}`);
+      seen.add(r.founder_id);
+    }
+  });
+
+  await t.test("should fallback cleanly if LLM keys are missing", async () => {
+    const originalApiKey = process.env.LLM_API_KEY;
+    const originalGeminiKey = process.env.GEMINI_API_KEY;
+    delete process.env.LLM_API_KEY;
+    delete process.env.GEMINI_API_KEY;
+    try {
+      const candidates = await discoverCandidates({ query: "random-query" });
+      assert.ok(candidates.length > 0);
+      assert.strictEqual(candidates[0].is_mock, true);
+    } finally {
+      process.env.LLM_API_KEY = originalApiKey;
+      process.env.GEMINI_API_KEY = originalGeminiKey;
+    }
+  });
+
+  await t.test("should escape special characters in ILIKE queries", async () => {
+    const results = await searchWorkspace("M%y_a");
+    assert.ok(Array.isArray(results));
+  });
+
   await t.test("should trigger rate limiting on abuse", async () => {
     const list = await getFounders();
     const targetFounder = list[0];

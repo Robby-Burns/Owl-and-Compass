@@ -2,8 +2,12 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 import { revalidatePath } from "next/cache";
 import { supabase, isMocked } from "@/lib/supabase";
+
+const execAsync = promisify(exec);
 
 function tryRevalidatePath(path: string) {
   try {
@@ -22,6 +26,7 @@ export interface Founder {
   industry: string;
   bio: string;
   tech_stack?: string;
+  is_mock?: boolean;
   created_at: string;
 }
 
@@ -717,6 +722,35 @@ export async function deleteFounder(founderId: string): Promise<boolean> {
   return true;
 }
 
+function escapeSqlLike(str: string): string {
+  return str.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
+function getPythonExecutable(): string {
+  const isWin = process.platform === "win32";
+  if (isWin) {
+    const localVenv = path.join(process.cwd(), "..", ".venv", "Scripts", "python.exe");
+    if (fs.existsSync(localVenv)) return localVenv;
+    const webVenv = path.join(process.cwd(), ".venv", "Scripts", "python.exe");
+    if (fs.existsSync(webVenv)) return webVenv;
+    return "python";
+  } else {
+    const optVenv = "/opt/venv/bin/python";
+    if (fs.existsSync(optVenv)) return optVenv;
+    const localVenv = path.join(process.cwd(), "..", ".venv", "bin", "python");
+    if (fs.existsSync(localVenv)) return localVenv;
+    return "python3";
+  }
+}
+
+function getPlaywrightSearchScript(): string {
+  const localPath = path.join(process.cwd(), "..", "src", "owl_and_compass", "playwright_search.py");
+  if (fs.existsSync(localPath)) return localPath;
+  const prodPath = path.join(process.cwd(), "src", "owl_and_compass", "playwright_search.py");
+  if (fs.existsSync(prodPath)) return prodPath;
+  return "src/owl_and_compass/playwright_search.py";
+}
+
 export async function discoverCandidates(criteria: {
   query?: string;
   industry?: string;
@@ -730,7 +764,55 @@ export async function discoverCandidates(criteria: {
   const stage = sanitizeString(criteria.stage || "", 50);
   const techStack = sanitizeString(criteria.techStack || "", 200);
 
-  // Diverse candidates database
+  const apiKey =
+    process.env.LLM_API_KEY ||
+    process.env.OPENROUTER_API_KEY ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.OPENAI_API_KEY ||
+    process.env.GROQ_API_KEY ||
+    "";
+
+  // Try Playwright Python search (uses free DuckDuckGo crawling + LLM extraction)
+  if (apiKey) {
+    try {
+      const pythonBin = getPythonExecutable();
+      const scriptPath = getPlaywrightSearchScript();
+      const searchQuery = [query, industry, techStack].filter(Boolean).join(" ");
+      
+      if (searchQuery.trim().length > 0) {
+        const ddgQuery = `site:linkedin.com/in/ "founder" ${searchQuery}`;
+        const env = {
+          ...process.env,
+          LLM_API_KEY: apiKey,
+        };
+        
+        const { stdout } = await execAsync(`"${pythonBin}" "${scriptPath}" "${ddgQuery.replace(/"/g, '\\"')}"`, { env });
+        
+        if (stdout && stdout.trim()) {
+          const parsed = JSON.parse(stdout);
+          if (parsed && Array.isArray(parsed.candidates) && parsed.candidates.length > 0) {
+            return parsed.candidates.map((c: any, index: number) => ({
+              id: `real-${index}-${Date.now()}`,
+              full_name: sanitizeString(c.full_name, 100),
+              company_name: sanitizeString(c.company_name, 100),
+              company_stage: sanitizeString(c.company_stage || stage || "Unknown", 50),
+              industry: sanitizeString(c.industry || industry || "Technology", 100),
+              bio: sanitizeString(c.bio || "", 500),
+              company_description: sanitizeString(c.company_description || "", 1000),
+              tech_stack: sanitizeString(c.tech_stack || techStack || "", 200),
+              is_mock: false,
+              created_at: new Date().toISOString(),
+            }));
+          }
+        }
+      }
+    } catch (e: any) {
+      console.warn("Failed to fetch real candidates via Python Playwright search, falling back to mock:", e.message || e);
+    }
+  }
+
+  // Diverse candidates database fallback
   const baseCandidates: Array<Omit<Founder, "id" | "created_at">> = [
     {
       full_name: "Elena Rostova",
@@ -789,6 +871,7 @@ export async function discoverCandidates(criteria: {
     company_stage: stage || c.company_stage,
     industry: industry || c.industry,
     tech_stack: techStack || c.tech_stack,
+    is_mock: true,
     created_at: new Date().toISOString(),
   }));
 
@@ -803,7 +886,6 @@ export async function discoverCandidates(criteria: {
         (c.tech_stack && c.tech_stack.toLowerCase().includes(q)) ||
         c.company_stage.toLowerCase().includes(q)
     );
-    // If exact query yields results, return them; otherwise fallback to top matches
     return filtered.length > 0 ? filtered : mockCandidates.slice(0, 3);
   }
 
@@ -815,6 +897,9 @@ export async function searchWorkspace(rawQuery: string): Promise<SearchResultIte
   const query = sanitizeString(rawQuery, 100).toLowerCase();
 
   if (!query || query.length < 2) return [];
+
+  let touchpointMatches: SearchResultItem[] = [];
+  let founderMatches: SearchResultItem[] = [];
 
   // Try PostgreSQL Supabase RRF search first if configured, with a 500ms strict timeout
   if (!isMocked) {
@@ -830,8 +915,8 @@ export async function searchWorkspace(rawQuery: string): Promise<SearchResultIte
       });
 
       const res = (await Promise.race([searchPromise, timeoutPromise])) as any;
-      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-        return res.data.map((item: any) => ({
+      if (res && res.data && Array.isArray(res.data)) {
+        touchpointMatches = res.data.map((item: any) => ({
           touchpoint_id: item.touchpoint_id,
           founder_id: item.founder_id,
           founder_name: item.founder_name,
@@ -846,6 +931,48 @@ export async function searchWorkspace(rawQuery: string): Promise<SearchResultIte
     } catch (e: any) {
       console.warn("Vector service timeout or error — falling back to BM25 full-text search:", e.message || e);
     }
+
+    try {
+      const escapedQuery = escapeSqlLike(query);
+      const { data: dbFounders, error: dbError } = await supabase
+        .from("founders")
+        .select("*")
+        .or(`full_name.ilike.%${escapedQuery}%,company_name.ilike.%${escapedQuery}%,bio.ilike.%${escapedQuery}%,industry.ilike.%${escapedQuery}%`);
+
+      if (dbFounders && !dbError) {
+        founderMatches = dbFounders.map((f: any) => {
+          const isExactName = f.full_name.toLowerCase().includes(query);
+          const isCompany = f.company_name.toLowerCase().includes(query);
+          const bm25Rank = isExactName ? 1 : isCompany ? 2 : 3;
+          const rrfScore = Number((0.6 / (60 + bm25Rank) + 0.4 / 65).toFixed(4));
+
+          return {
+            founder_id: f.id,
+            founder_name: f.full_name,
+            company_name: f.company_name,
+            source_type: "profile",
+            snippet: `${f.company_name} (${f.industry}) — ${f.bio}`,
+            score: rrfScore,
+            matched_field: isExactName ? "name" : isCompany ? "company" : "bio",
+            created_at: f.created_at,
+          };
+        });
+      }
+    } catch (e: any) {
+      console.error("Failed to fetch founders directly from Supabase:", e.message || e);
+    }
+
+    const mergedResults: SearchResultItem[] = [...touchpointMatches];
+    const seenFounderIds = new Set(touchpointMatches.map((r) => r.founder_id));
+
+    for (const fMatch of founderMatches) {
+      if (!seenFounderIds.has(fMatch.founder_id)) {
+        seenFounderIds.add(fMatch.founder_id);
+        mergedResults.push(fMatch);
+      }
+    }
+
+    return mergedResults.sort((a, b) => b.score - a.score);
   }
 
   const results: SearchResultItem[] = [];
@@ -933,7 +1060,15 @@ export async function searchWorkspace(rawQuery: string): Promise<SearchResultIte
 
   // Deduplicate by founder & sort by RRF score
   results.sort((a, b) => b.score - a.score);
-  return results.slice(0, 10);
+  const uniqueResults: SearchResultItem[] = [];
+  const seenFounderIds = new Set<string>();
+  for (const r of results) {
+    if (!seenFounderIds.has(r.founder_id)) {
+      seenFounderIds.add(r.founder_id);
+      uniqueResults.push(r);
+    }
+  }
+  return uniqueResults.slice(0, 10);
 }
 
 export async function analyzeWorkspacePatterns(): Promise<PatternCard[]> {
@@ -1094,6 +1229,18 @@ export async function getFounderTimelineNodes(founderId: string): Promise<Timeli
   ];
 
   return nodes;
+}
+
+export async function isExaConfigured(): Promise<boolean> {
+  const hasLlmKey = !!(
+    process.env.LLM_API_KEY ||
+    process.env.OPENROUTER_API_KEY ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.OPENAI_API_KEY ||
+    process.env.GROQ_API_KEY
+  );
+  return hasLlmKey;
 }
 
 

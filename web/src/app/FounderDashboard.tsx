@@ -47,7 +47,8 @@ import {
   discoverCandidates,
   searchWorkspace,
   analyzeWorkspacePatterns,
-  getFounderTimelineNodes
+  getFounderTimelineNodes,
+  isExaConfigured
 } from "@/app/actions";
 
 interface FounderDashboardProps {
@@ -89,6 +90,17 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
   const [patternCards, setPatternCards] = useState<PatternCard[]>([]);
   const [loadingPatterns, setLoadingPatterns] = useState(false);
   const [timelineStageNodes, setTimelineStageNodes] = useState<TimelineStageNode[]>([]);
+  const [exaConfigured, setExaConfigured] = useState<boolean>(false);
+  const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    isExaConfigured().then(setExaConfigured);
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
   
   // Selected founder detailed data
   const [selectedFounder, setSelectedFounder] = useState<Founder | null>(null);
@@ -160,21 +172,26 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
     }
   };
 
-  const handleGlobalSearch = async (query: string) => {
+  const handleGlobalSearch = (query: string) => {
     setGlobalSearchQuery(query);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
     if (!query || query.trim().length < 2) {
       setGlobalSearchResults([]);
       return;
     }
     setIsSearchingGlobal(true);
-    try {
-      const results = await searchWorkspace(query);
-      setGlobalSearchResults(results);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsSearchingGlobal(false);
-    }
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const results = await searchWorkspace(query);
+        setGlobalSearchResults(results);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsSearchingGlobal(false);
+      }
+    }, 300);
   };
 
   const handleSelectCandidate = async (cand: Founder) => {
@@ -513,6 +530,17 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
             </>
           ) : sidebarTab === "discover" ? (
             <div className="space-y-4">
+              {!exaConfigured && (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200/90 text-[11px] space-y-1 leading-relaxed">
+                  <div className="flex items-center gap-1.5 font-bold text-[#C69C35]">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Offline Discovery Mode</span>
+                  </div>
+                  <p>
+                    Configure <code className="bg-black/40 px-1 py-0.2 rounded text-[10px]">EXA_API_KEY</code> on Railway to search real web signals. Showing illustrative mock profiles.
+                  </p>
+                </div>
+              )}
               <form onSubmit={handleSearchCandidates} className="space-y-2">
                 <div className="relative">
                   <Search className="w-4 h-4 text-amber-400/60 absolute left-3 top-2.5" />
@@ -557,9 +585,16 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-white text-sm">{cand.full_name}</span>
-                      <span className="text-xs px-2 py-0.5 rounded bg-[#C69C35]/20 text-[#F5D77F] border border-[#C69C35]/30">
-                        {cand.company_stage}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {cand.is_mock && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-950/40 text-blue-300 border border-blue-800/30 font-semibold tracking-wide uppercase">
+                            Illustrative Mock
+                          </span>
+                        )}
+                        <span className="text-xs px-2 py-0.5 rounded bg-[#C69C35]/20 text-[#F5D77F] border border-[#C69C35]/30">
+                          {cand.company_stage}
+                        </span>
+                      </div>
                     </div>
                     <div className="text-xs text-amber-200/90 font-bold">{cand.company_name} · {cand.industry}</div>
                     <p className="text-[11px] text-amber-100/90 line-clamp-2 bg-[#1D2228]/80 p-2 rounded-lg border border-[#C69C35]/20 leading-relaxed">
