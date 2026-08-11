@@ -787,7 +787,8 @@ export async function discoverCandidates(criteria: {
           LLM_API_KEY: apiKey,
         };
         
-        const { stdout } = await execAsync(`"${pythonBin}" "${scriptPath}" "${ddgQuery.replace(/"/g, '\\"')}"`, { env });
+        const { stdout, stderr } = await execAsync(`"${pythonBin}" "${scriptPath}" "${ddgQuery.replace(/"/g, '\\"')}"`, { env, timeout: 35000 });
+        if (stderr && stderr.trim()) console.warn("playwright_search stderr:", stderr.slice(0, 500));
         
         if (stdout && stdout.trim()) {
           const parsed = JSON.parse(stdout);
