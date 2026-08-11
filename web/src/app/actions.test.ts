@@ -10,7 +10,9 @@ import {
   discoverCandidates,
   searchWorkspace,
   analyzeWorkspacePatterns,
-  getFounderTimelineNodes
+  getFounderTimelineNodes,
+  escapeHtml,
+  sanitizeString
 } from "./actions";
 
 test("Next.js Server Actions integration suite", async (t) => {
@@ -232,5 +234,22 @@ test("Next.js Server Actions integration suite", async (t) => {
       }
     }
     assert.ok(rateLimitTriggered, "Rate limiting was not triggered under excessive calls.");
+  });
+
+  await t.test("should handle diverse data types in escapeHtml and sanitizeString without throwing", async () => {
+    // Test escapeHtml
+    assert.strictEqual(escapeHtml(null), "");
+    assert.strictEqual(escapeHtml(undefined), "");
+    assert.strictEqual(escapeHtml(123), "123");
+    assert.strictEqual(escapeHtml("<div>&\"'</div>"), "&lt;div&gt;&amp;&quot;&#x27;&lt;&#x2F;div&gt;");
+    
+    // Test sanitizeString
+    assert.strictEqual(sanitizeString(null, 10), "");
+    assert.strictEqual(sanitizeString(undefined, 10), "");
+    assert.strictEqual(sanitizeString(12345, 3), "123");
+    assert.strictEqual(sanitizeString(["React", "Node.js"], 50), "React, Node.js");
+    assert.strictEqual(sanitizeString(["Go", null, 42], 50), "Go, null, 42");
+    assert.strictEqual(sanitizeString({ foo: "bar" }, 50), "[object Object]");
+    assert.strictEqual(sanitizeString("SELECT * FROM users; -- comment", 100), "SELECT * FROM users  comment");
   });
 });

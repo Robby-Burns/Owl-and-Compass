@@ -1,6 +1,138 @@
 {
   "founders": [
     {
+      "id": "founder-ild71gs32",
+      "full_name": "&lt;svg onload&#x3D;alert(1)&gt; Test Name",
+      "company_name": "Test Co",
+      "company_stage": "Pre-Seed",
+      "company_description": "Developing custom lab automation systems.",
+      "industry": "BioTech",
+      "tech_stack": "Python, AWS",
+      "bio": "Developing custom lab automation systems.",
+      "created_at": "2026-08-11T23:15:38.215Z"
+    },
+    {
+      "id": "founder-setc9htg6",
+      "full_name": "&lt;svg onload&#x3D;alert(1)&gt; Test Name",
+      "company_name": "Test Co",
+      "company_stage": "Pre-Seed",
+      "company_description": "Developing custom lab automation systems.",
+      "industry": "BioTech",
+      "tech_stack": "Python, AWS",
+      "bio": "Developing custom lab automation systems.",
+      "created_at": "2026-08-11T23:15:25.852Z"
+    },
+    {
+      "id": "founder-y08smblr6",
+      "full_name": "&lt;svg onload&#x3D;alert(1)&gt; Test Name",
+      "company_name": "Test Co",
+      "company_stage": "Pre-Seed",
+      "company_description": "Developing custom lab automation systems.",
+      "industry": "BioTech",
+      "tech_stack": "Python, AWS",
+      "bio": "Developing custom lab automation systems.",
+      "created_at": "2026-08-11T23:04:34.163Z"
+    },
+    {
+      "id": "founder-08iinkgds",
+      "full_name": "&lt;svg onload&#x3D;alert(1)&gt; Test Name",
+      "company_name": "Test Co",
+      "company_stage": "Pre-Seed",
+      "company_description": "Developing custom lab automation systems.",
+      "industry": "BioTech",
+      "tech_stack": "Python, AWS",
+      "bio": "Developing custom lab automation systems.",
+      "created_at": "2026-08-11T23:03:38.908Z"
+    },
+    {
+      "id": "founder-gc3zik15b",
+      "full_name": "&lt;svg onload&#x3D;alert(1)&gt; Test Name",
+      "company_name": "Test Co",
+      "company_stage": "Pre-Seed",
+      "company_description": "Developing custom lab automation systems.",
+      "industry": "BioTech",
+      "tech_stack": "Python, AWS",
+      "bio": "Developing custom lab automation systems.",
+      "created_at": "2026-08-11T23:03:00.173Z"
+    },
+    {
+      "id": "founder-ddn23419j",
+      "full_name": "&lt;svg onload&#x3D;alert(1)&gt; Test Name",
+      "company_name": "Test Co",
+      "company_stage": "Pre-Seed",
+      "company_description": "Developing custom lab automation systems.",
+      "industry": "BioTech",
+      "tech_stack": "Python, AWS",
+      "bio": "Developing custom lab automation systems.",
+      "created_at": "2026-08-11T22:27:14.168Z"
+    },
+    {
+      "id": "founder-gfrwc5rel",
+      "full_name": "&lt;svg onload&#x3D;alert(1)&gt; Test Name",
+      "company_name": "Test Co",
+      "company_stage": "Pre-Seed",
+      "company_description": "Developing custom lab automation systems.",
+      "industry": "BioTech",
+      "tech_stack": "Python, AWS",
+      "bio": "Developing custom lab automation systems.",
+      "created_at": "2026-08-11T22:02:48.880Z"
+    },
+    {
+      "id": "founder-uypoj5kjs",
+      "full_name": "&lt;svg onload&#x3D;alert(1)&gt; Test Name",
+      "company_name": "Test Co",
+      "company_stage": "Pre-Seed",
+      "company_description": "Developing custom lab automation systems.",
+      "industry": "BioTech",
+      "tech_stack": "Python, AWS",
+      "bio": "Developing custom lab automation systems.",
+      "created_at": "2026-08-11T21:52:43.795Z"
+    },
+    {
+      "id": "founder-f7lzo9tc2",
+      "full_name": "&lt;svg onload&#x3D;alert(1)&gt; Test Name",
+      "company_name": "Test Co",
+      "company_stage": "Pre-Seed",
+      "company_description": "Developing custom lab automation systems.",
+      "industry": "BioTech",
+      "tech_stack": "Python, AWS",
+      "bio": "Developing custom lab automation systems.",
+      "created_at": "2026-08-11T21:50:08.636Z"
+    },
+    {
+      "id": "founder-6i5rtjs9x",
+      "full_name": "&lt;svg onload&#x3D;alert(1)&gt; Test Name",
+      "company_name": "Test Co",
+      "company_stage": "Pre-Seed",
+      "company_description": "Developing custom lab automation systems.",
+      "industry": "BioTech",
+      "tech_stack": "Python, AWS",
+      "bio": "Developing custom lab automation systems.",
+      "created_at": "2026-08-11T21:47:49.982Z"
+    },
+    {
+      "id": "founder-nymdg1h88",
+      "full_name": "&lt;svg onload&#x3D;alert(1)&gt; Test Name",
+      "company_name": "Test Co",
+      "company_stage": "Pre-Seed",
+      "company_description": "Developing custom lab automation systems.",
+      "industry": "BioTech",
+      "tech_stack": "Python, AWS",
+      "bio": "Developing custom lab automation systems.",
+      "created_at": "2026-08-11T21:47:36.183Z"
+    },
+    {
+      "id": "founder-akoox0x6b",
+      "full_name": "&lt;svg onload&#x3D;alert(1)&gt; Test Name",
+      "company_name": "Test Co",
+      "company_stage": "Pre-Seed",
+      "company_description": "Developing custom lab automation systems.",
+      "industry": "BioTech",
+      "tech_stack": "Python, AWS",
+      "bio": "Developing custom lab automation systems.",
+      "created_at": "2026-08-11T21:18:53.821Z"
+    },
+    {
       "id": "founder-ujt0yy5xw",
       "full_name": "&lt;svg onload&#x3D;alert(1)&gt; Test Name",
       "company_name": "Test Co",
@@ -57,6 +189,342 @@
     }
   ],
   "touchpoints": [
+    {
+      "id": "touchpoint-jbhtqf17j",
+      "founder_id": "founder-ild71gs32",
+      "content": "Concurrent touchpoint C",
+      "source_type": "note",
+      "created_at": "2026-08-11T23:15:38.224Z"
+    },
+    {
+      "id": "touchpoint-rh7s3zh9j",
+      "founder_id": "founder-ild71gs32",
+      "content": "Concurrent touchpoint B",
+      "source_type": "note",
+      "created_at": "2026-08-11T23:15:38.223Z"
+    },
+    {
+      "id": "touchpoint-9mw9h3ouu",
+      "founder_id": "founder-ild71gs32",
+      "content": "Concurrent touchpoint A",
+      "source_type": "note",
+      "created_at": "2026-08-11T23:15:38.222Z"
+    },
+    {
+      "id": "touchpoint-gz9y5lswu",
+      "founder_id": "founder-ild71gs32",
+      "content": "Discussed promise of vector indexing follow up",
+      "source_type": "email",
+      "created_at": "2026-08-11T23:15:38.219Z"
+    },
+    {
+      "id": "touchpoint-uo107irv2",
+      "founder_id": "founder-setc9htg6",
+      "content": "Concurrent touchpoint C",
+      "source_type": "note",
+      "created_at": "2026-08-11T23:15:25.861Z"
+    },
+    {
+      "id": "touchpoint-h87p2dr9l",
+      "founder_id": "founder-setc9htg6",
+      "content": "Concurrent touchpoint B",
+      "source_type": "note",
+      "created_at": "2026-08-11T23:15:25.860Z"
+    },
+    {
+      "id": "touchpoint-6wehu3jjd",
+      "founder_id": "founder-setc9htg6",
+      "content": "Concurrent touchpoint A",
+      "source_type": "note",
+      "created_at": "2026-08-11T23:15:25.859Z"
+    },
+    {
+      "id": "touchpoint-q68nh83cd",
+      "founder_id": "founder-setc9htg6",
+      "content": "Discussed promise of vector indexing follow up",
+      "source_type": "email",
+      "created_at": "2026-08-11T23:15:25.857Z"
+    },
+    {
+      "id": "touchpoint-vbtt195zm",
+      "founder_id": "founder-y08smblr6",
+      "content": "Concurrent touchpoint C",
+      "source_type": "note",
+      "created_at": "2026-08-11T23:04:34.175Z"
+    },
+    {
+      "id": "touchpoint-balc05g76",
+      "founder_id": "founder-y08smblr6",
+      "content": "Concurrent touchpoint B",
+      "source_type": "note",
+      "created_at": "2026-08-11T23:04:34.174Z"
+    },
+    {
+      "id": "touchpoint-pryg7cuq3",
+      "founder_id": "founder-y08smblr6",
+      "content": "Concurrent touchpoint A",
+      "source_type": "note",
+      "created_at": "2026-08-11T23:04:34.173Z"
+    },
+    {
+      "id": "touchpoint-rlewja5qw",
+      "founder_id": "founder-y08smblr6",
+      "content": "Discussed promise of vector indexing follow up",
+      "source_type": "email",
+      "created_at": "2026-08-11T23:04:34.169Z"
+    },
+    {
+      "id": "touchpoint-a8df3rmlq",
+      "founder_id": "founder-08iinkgds",
+      "content": "Concurrent touchpoint C",
+      "source_type": "note",
+      "created_at": "2026-08-11T23:03:38.916Z"
+    },
+    {
+      "id": "touchpoint-qfqli1zes",
+      "founder_id": "founder-08iinkgds",
+      "content": "Concurrent touchpoint B",
+      "source_type": "note",
+      "created_at": "2026-08-11T23:03:38.915Z"
+    },
+    {
+      "id": "touchpoint-ghquwdcgv",
+      "founder_id": "founder-08iinkgds",
+      "content": "Concurrent touchpoint A",
+      "source_type": "note",
+      "created_at": "2026-08-11T23:03:38.914Z"
+    },
+    {
+      "id": "touchpoint-jll7mgx5w",
+      "founder_id": "founder-08iinkgds",
+      "content": "Discussed promise of vector indexing follow up",
+      "source_type": "email",
+      "created_at": "2026-08-11T23:03:38.911Z"
+    },
+    {
+      "id": "touchpoint-3cx04ozuv",
+      "founder_id": "founder-gc3zik15b",
+      "content": "Concurrent touchpoint C",
+      "source_type": "note",
+      "created_at": "2026-08-11T23:03:00.183Z"
+    },
+    {
+      "id": "touchpoint-khr8ipqkq",
+      "founder_id": "founder-gc3zik15b",
+      "content": "Concurrent touchpoint B",
+      "source_type": "note",
+      "created_at": "2026-08-11T23:03:00.182Z"
+    },
+    {
+      "id": "touchpoint-5m7wncwq1",
+      "founder_id": "founder-gc3zik15b",
+      "content": "Concurrent touchpoint A",
+      "source_type": "note",
+      "created_at": "2026-08-11T23:03:00.181Z"
+    },
+    {
+      "id": "touchpoint-s5y1859cd",
+      "founder_id": "founder-gc3zik15b",
+      "content": "Discussed promise of vector indexing follow up",
+      "source_type": "email",
+      "created_at": "2026-08-11T23:03:00.178Z"
+    },
+    {
+      "id": "touchpoint-nwyk1kk11",
+      "founder_id": "founder-ddn23419j",
+      "content": "Concurrent touchpoint C",
+      "source_type": "note",
+      "created_at": "2026-08-11T22:27:14.177Z"
+    },
+    {
+      "id": "touchpoint-bpbsabnuw",
+      "founder_id": "founder-ddn23419j",
+      "content": "Concurrent touchpoint B",
+      "source_type": "note",
+      "created_at": "2026-08-11T22:27:14.176Z"
+    },
+    {
+      "id": "touchpoint-g20yfthdp",
+      "founder_id": "founder-ddn23419j",
+      "content": "Concurrent touchpoint A",
+      "source_type": "note",
+      "created_at": "2026-08-11T22:27:14.175Z"
+    },
+    {
+      "id": "touchpoint-7gno67f8t",
+      "founder_id": "founder-ddn23419j",
+      "content": "Discussed promise of vector indexing follow up",
+      "source_type": "email",
+      "created_at": "2026-08-11T22:27:14.173Z"
+    },
+    {
+      "id": "touchpoint-s497m10va",
+      "founder_id": "founder-gfrwc5rel",
+      "content": "Concurrent touchpoint C",
+      "source_type": "note",
+      "created_at": "2026-08-11T22:02:48.888Z"
+    },
+    {
+      "id": "touchpoint-lqulbheh1",
+      "founder_id": "founder-gfrwc5rel",
+      "content": "Concurrent touchpoint B",
+      "source_type": "note",
+      "created_at": "2026-08-11T22:02:48.887Z"
+    },
+    {
+      "id": "touchpoint-vddseo7xg",
+      "founder_id": "founder-gfrwc5rel",
+      "content": "Concurrent touchpoint A",
+      "source_type": "note",
+      "created_at": "2026-08-11T22:02:48.886Z"
+    },
+    {
+      "id": "touchpoint-4tji73dvu",
+      "founder_id": "founder-gfrwc5rel",
+      "content": "Discussed promise of vector indexing follow up",
+      "source_type": "email",
+      "created_at": "2026-08-11T22:02:48.884Z"
+    },
+    {
+      "id": "touchpoint-y38kc78b5",
+      "founder_id": "founder-uypoj5kjs",
+      "content": "Concurrent touchpoint C",
+      "source_type": "note",
+      "created_at": "2026-08-11T21:52:43.804Z"
+    },
+    {
+      "id": "touchpoint-hqnb2pi1m",
+      "founder_id": "founder-uypoj5kjs",
+      "content": "Concurrent touchpoint B",
+      "source_type": "note",
+      "created_at": "2026-08-11T21:52:43.803Z"
+    },
+    {
+      "id": "touchpoint-1hb52c2xf",
+      "founder_id": "founder-uypoj5kjs",
+      "content": "Concurrent touchpoint A",
+      "source_type": "note",
+      "created_at": "2026-08-11T21:52:43.801Z"
+    },
+    {
+      "id": "touchpoint-1rz1u8iw7",
+      "founder_id": "founder-uypoj5kjs",
+      "content": "Discussed promise of vector indexing follow up",
+      "source_type": "email",
+      "created_at": "2026-08-11T21:52:43.799Z"
+    },
+    {
+      "id": "touchpoint-31vsrwuj4",
+      "founder_id": "founder-f7lzo9tc2",
+      "content": "Concurrent touchpoint C",
+      "source_type": "note",
+      "created_at": "2026-08-11T21:50:08.645Z"
+    },
+    {
+      "id": "touchpoint-0yimhp03s",
+      "founder_id": "founder-f7lzo9tc2",
+      "content": "Concurrent touchpoint B",
+      "source_type": "note",
+      "created_at": "2026-08-11T21:50:08.644Z"
+    },
+    {
+      "id": "touchpoint-cpti88j4r",
+      "founder_id": "founder-f7lzo9tc2",
+      "content": "Concurrent touchpoint A",
+      "source_type": "note",
+      "created_at": "2026-08-11T21:50:08.643Z"
+    },
+    {
+      "id": "touchpoint-dli0wgrnr",
+      "founder_id": "founder-f7lzo9tc2",
+      "content": "Discussed promise of vector indexing follow up",
+      "source_type": "email",
+      "created_at": "2026-08-11T21:50:08.640Z"
+    },
+    {
+      "id": "touchpoint-ii9wet5to",
+      "founder_id": "founder-6i5rtjs9x",
+      "content": "Concurrent touchpoint C",
+      "source_type": "note",
+      "created_at": "2026-08-11T21:47:49.989Z"
+    },
+    {
+      "id": "touchpoint-5mgdp1zzl",
+      "founder_id": "founder-6i5rtjs9x",
+      "content": "Concurrent touchpoint B",
+      "source_type": "note",
+      "created_at": "2026-08-11T21:47:49.988Z"
+    },
+    {
+      "id": "touchpoint-2udazku3o",
+      "founder_id": "founder-6i5rtjs9x",
+      "content": "Concurrent touchpoint A",
+      "source_type": "note",
+      "created_at": "2026-08-11T21:47:49.987Z"
+    },
+    {
+      "id": "touchpoint-ejs9hgecn",
+      "founder_id": "founder-6i5rtjs9x",
+      "content": "Discussed promise of vector indexing follow up",
+      "source_type": "email",
+      "created_at": "2026-08-11T21:47:49.985Z"
+    },
+    {
+      "id": "touchpoint-8dkxselpf",
+      "founder_id": "founder-nymdg1h88",
+      "content": "Concurrent touchpoint C",
+      "source_type": "note",
+      "created_at": "2026-08-11T21:47:36.191Z"
+    },
+    {
+      "id": "touchpoint-nzwmevxow",
+      "founder_id": "founder-nymdg1h88",
+      "content": "Concurrent touchpoint B",
+      "source_type": "note",
+      "created_at": "2026-08-11T21:47:36.190Z"
+    },
+    {
+      "id": "touchpoint-wuvmb7u9w",
+      "founder_id": "founder-nymdg1h88",
+      "content": "Concurrent touchpoint A",
+      "source_type": "note",
+      "created_at": "2026-08-11T21:47:36.189Z"
+    },
+    {
+      "id": "touchpoint-o2mwtfh8u",
+      "founder_id": "founder-nymdg1h88",
+      "content": "Discussed promise of vector indexing follow up",
+      "source_type": "email",
+      "created_at": "2026-08-11T21:47:36.187Z"
+    },
+    {
+      "id": "touchpoint-74gclmpek",
+      "founder_id": "founder-akoox0x6b",
+      "content": "Concurrent touchpoint C",
+      "source_type": "note",
+      "created_at": "2026-08-11T21:18:53.828Z"
+    },
+    {
+      "id": "touchpoint-lvvth8imp",
+      "founder_id": "founder-akoox0x6b",
+      "content": "Concurrent touchpoint B",
+      "source_type": "note",
+      "created_at": "2026-08-11T21:18:53.827Z"
+    },
+    {
+      "id": "touchpoint-82zk6ozmt",
+      "founder_id": "founder-akoox0x6b",
+      "content": "Concurrent touchpoint A",
+      "source_type": "note",
+      "created_at": "2026-08-11T21:18:53.826Z"
+    },
+    {
+      "id": "touchpoint-b9e8rxwhh",
+      "founder_id": "founder-akoox0x6b",
+      "content": "Discussed promise of vector indexing follow up",
+      "source_type": "email",
+      "created_at": "2026-08-11T21:18:53.825Z"
+    },
     {
       "id": "touchpoint-0ucr0xuae",
       "founder_id": "founder-ujt0yy5xw",
@@ -150,6 +618,486 @@
     }
   ],
   "timelineEvents": [
+    {
+      "id": "event-p39vxrayj",
+      "founder_id": "founder-ild71gs32",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint C...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T23:15:38.224Z"
+    },
+    {
+      "id": "event-r6hait08y",
+      "founder_id": "founder-ild71gs32",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint B...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T23:15:38.223Z"
+    },
+    {
+      "id": "event-8pqi21dtq",
+      "founder_id": "founder-ild71gs32",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint A...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T23:15:38.222Z"
+    },
+    {
+      "id": "event-7hkal45zd",
+      "founder_id": "founder-ild71gs32",
+      "event_type": "meeting",
+      "summary": "Logged email touchpoint: Discussed promise of vector indexing follow up...",
+      "open_loops": [
+        "Review next steps promised in meeting"
+      ],
+      "promises": [
+        "Follow up on discussed topics"
+      ],
+      "occurred_at": "2026-08-11T23:15:38.219Z"
+    },
+    {
+      "id": "event-8yqcf2met",
+      "founder_id": "founder-setc9htg6",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint C...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T23:15:25.861Z"
+    },
+    {
+      "id": "event-q0vp1gk24",
+      "founder_id": "founder-setc9htg6",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint B...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T23:15:25.860Z"
+    },
+    {
+      "id": "event-4va68x41p",
+      "founder_id": "founder-setc9htg6",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint A...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T23:15:25.859Z"
+    },
+    {
+      "id": "event-8967udzae",
+      "founder_id": "founder-setc9htg6",
+      "event_type": "meeting",
+      "summary": "Logged email touchpoint: Discussed promise of vector indexing follow up...",
+      "open_loops": [
+        "Review next steps promised in meeting"
+      ],
+      "promises": [
+        "Follow up on discussed topics"
+      ],
+      "occurred_at": "2026-08-11T23:15:25.857Z"
+    },
+    {
+      "id": "event-7qsmk60c3",
+      "founder_id": "founder-y08smblr6",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint C...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T23:04:34.175Z"
+    },
+    {
+      "id": "event-ruhr6oygf",
+      "founder_id": "founder-y08smblr6",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint B...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T23:04:34.174Z"
+    },
+    {
+      "id": "event-iwxph3ymv",
+      "founder_id": "founder-y08smblr6",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint A...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T23:04:34.173Z"
+    },
+    {
+      "id": "event-lmwnhgl5j",
+      "founder_id": "founder-y08smblr6",
+      "event_type": "meeting",
+      "summary": "Logged email touchpoint: Discussed promise of vector indexing follow up...",
+      "open_loops": [
+        "Review next steps promised in meeting"
+      ],
+      "promises": [
+        "Follow up on discussed topics"
+      ],
+      "occurred_at": "2026-08-11T23:04:34.169Z"
+    },
+    {
+      "id": "event-yglqiqd0m",
+      "founder_id": "founder-08iinkgds",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint C...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T23:03:38.916Z"
+    },
+    {
+      "id": "event-ro8egbkyi",
+      "founder_id": "founder-08iinkgds",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint B...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T23:03:38.915Z"
+    },
+    {
+      "id": "event-cf6gf8dhs",
+      "founder_id": "founder-08iinkgds",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint A...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T23:03:38.914Z"
+    },
+    {
+      "id": "event-z8lj17ftg",
+      "founder_id": "founder-08iinkgds",
+      "event_type": "meeting",
+      "summary": "Logged email touchpoint: Discussed promise of vector indexing follow up...",
+      "open_loops": [
+        "Review next steps promised in meeting"
+      ],
+      "promises": [
+        "Follow up on discussed topics"
+      ],
+      "occurred_at": "2026-08-11T23:03:38.911Z"
+    },
+    {
+      "id": "event-99mjx0eo3",
+      "founder_id": "founder-gc3zik15b",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint C...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T23:03:00.183Z"
+    },
+    {
+      "id": "event-f97zz7hhs",
+      "founder_id": "founder-gc3zik15b",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint B...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T23:03:00.182Z"
+    },
+    {
+      "id": "event-6omovd1g7",
+      "founder_id": "founder-gc3zik15b",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint A...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T23:03:00.181Z"
+    },
+    {
+      "id": "event-n5q43kvru",
+      "founder_id": "founder-gc3zik15b",
+      "event_type": "meeting",
+      "summary": "Logged email touchpoint: Discussed promise of vector indexing follow up...",
+      "open_loops": [
+        "Review next steps promised in meeting"
+      ],
+      "promises": [
+        "Follow up on discussed topics"
+      ],
+      "occurred_at": "2026-08-11T23:03:00.178Z"
+    },
+    {
+      "id": "event-orfh9ap9c",
+      "founder_id": "founder-ddn23419j",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint C...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T22:27:14.177Z"
+    },
+    {
+      "id": "event-8g6jp3m5c",
+      "founder_id": "founder-ddn23419j",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint B...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T22:27:14.176Z"
+    },
+    {
+      "id": "event-8c0sv928s",
+      "founder_id": "founder-ddn23419j",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint A...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T22:27:14.175Z"
+    },
+    {
+      "id": "event-v0zzw5iir",
+      "founder_id": "founder-ddn23419j",
+      "event_type": "meeting",
+      "summary": "Logged email touchpoint: Discussed promise of vector indexing follow up...",
+      "open_loops": [
+        "Review next steps promised in meeting"
+      ],
+      "promises": [
+        "Follow up on discussed topics"
+      ],
+      "occurred_at": "2026-08-11T22:27:14.173Z"
+    },
+    {
+      "id": "event-6buo4sb9i",
+      "founder_id": "founder-gfrwc5rel",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint C...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T22:02:48.888Z"
+    },
+    {
+      "id": "event-ji3oqxbbz",
+      "founder_id": "founder-gfrwc5rel",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint B...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T22:02:48.887Z"
+    },
+    {
+      "id": "event-9fatapb9y",
+      "founder_id": "founder-gfrwc5rel",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint A...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T22:02:48.886Z"
+    },
+    {
+      "id": "event-7hs2mf7t1",
+      "founder_id": "founder-gfrwc5rel",
+      "event_type": "meeting",
+      "summary": "Logged email touchpoint: Discussed promise of vector indexing follow up...",
+      "open_loops": [
+        "Review next steps promised in meeting"
+      ],
+      "promises": [
+        "Follow up on discussed topics"
+      ],
+      "occurred_at": "2026-08-11T22:02:48.884Z"
+    },
+    {
+      "id": "event-3am2t9q2p",
+      "founder_id": "founder-uypoj5kjs",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint C...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T21:52:43.804Z"
+    },
+    {
+      "id": "event-ssqnxiw70",
+      "founder_id": "founder-uypoj5kjs",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint B...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T21:52:43.803Z"
+    },
+    {
+      "id": "event-t7fm04u8q",
+      "founder_id": "founder-uypoj5kjs",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint A...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T21:52:43.801Z"
+    },
+    {
+      "id": "event-p2gyn7vit",
+      "founder_id": "founder-uypoj5kjs",
+      "event_type": "meeting",
+      "summary": "Logged email touchpoint: Discussed promise of vector indexing follow up...",
+      "open_loops": [
+        "Review next steps promised in meeting"
+      ],
+      "promises": [
+        "Follow up on discussed topics"
+      ],
+      "occurred_at": "2026-08-11T21:52:43.799Z"
+    },
+    {
+      "id": "event-nva7iqk3x",
+      "founder_id": "founder-f7lzo9tc2",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint C...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T21:50:08.645Z"
+    },
+    {
+      "id": "event-ttaj6rhvh",
+      "founder_id": "founder-f7lzo9tc2",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint B...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T21:50:08.644Z"
+    },
+    {
+      "id": "event-g167obvmc",
+      "founder_id": "founder-f7lzo9tc2",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint A...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T21:50:08.643Z"
+    },
+    {
+      "id": "event-4k45q6rfb",
+      "founder_id": "founder-f7lzo9tc2",
+      "event_type": "meeting",
+      "summary": "Logged email touchpoint: Discussed promise of vector indexing follow up...",
+      "open_loops": [
+        "Review next steps promised in meeting"
+      ],
+      "promises": [
+        "Follow up on discussed topics"
+      ],
+      "occurred_at": "2026-08-11T21:50:08.640Z"
+    },
+    {
+      "id": "event-8k6uyypnr",
+      "founder_id": "founder-6i5rtjs9x",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint C...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T21:47:49.989Z"
+    },
+    {
+      "id": "event-um06u1g3l",
+      "founder_id": "founder-6i5rtjs9x",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint B...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T21:47:49.988Z"
+    },
+    {
+      "id": "event-zjsbdccko",
+      "founder_id": "founder-6i5rtjs9x",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint A...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T21:47:49.987Z"
+    },
+    {
+      "id": "event-owdcg00b4",
+      "founder_id": "founder-6i5rtjs9x",
+      "event_type": "meeting",
+      "summary": "Logged email touchpoint: Discussed promise of vector indexing follow up...",
+      "open_loops": [
+        "Review next steps promised in meeting"
+      ],
+      "promises": [
+        "Follow up on discussed topics"
+      ],
+      "occurred_at": "2026-08-11T21:47:49.985Z"
+    },
+    {
+      "id": "event-32qqytb2o",
+      "founder_id": "founder-nymdg1h88",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint C...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T21:47:36.191Z"
+    },
+    {
+      "id": "event-cokzj2klg",
+      "founder_id": "founder-nymdg1h88",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint B...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T21:47:36.190Z"
+    },
+    {
+      "id": "event-bz7hfzb23",
+      "founder_id": "founder-nymdg1h88",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint A...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T21:47:36.189Z"
+    },
+    {
+      "id": "event-2b6z7xdme",
+      "founder_id": "founder-nymdg1h88",
+      "event_type": "meeting",
+      "summary": "Logged email touchpoint: Discussed promise of vector indexing follow up...",
+      "open_loops": [
+        "Review next steps promised in meeting"
+      ],
+      "promises": [
+        "Follow up on discussed topics"
+      ],
+      "occurred_at": "2026-08-11T21:47:36.187Z"
+    },
+    {
+      "id": "event-3wxq1nij4",
+      "founder_id": "founder-akoox0x6b",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint C...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T21:18:53.828Z"
+    },
+    {
+      "id": "event-0q18an6tq",
+      "founder_id": "founder-akoox0x6b",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint B...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T21:18:53.827Z"
+    },
+    {
+      "id": "event-o07tm1wna",
+      "founder_id": "founder-akoox0x6b",
+      "event_type": "meeting",
+      "summary": "Logged note touchpoint: Concurrent touchpoint A...",
+      "open_loops": [],
+      "promises": [],
+      "occurred_at": "2026-08-11T21:18:53.826Z"
+    },
+    {
+      "id": "event-d3q0l2can",
+      "founder_id": "founder-akoox0x6b",
+      "event_type": "meeting",
+      "summary": "Logged email touchpoint: Discussed promise of vector indexing follow up...",
+      "open_loops": [
+        "Review next steps promised in meeting"
+      ],
+      "promises": [
+        "Follow up on discussed topics"
+      ],
+      "occurred_at": "2026-08-11T21:18:53.825Z"
+    },
     {
       "id": "event-8yvp6v9m1",
       "founder_id": "founder-ujt0yy5xw",
@@ -296,6 +1244,18 @@
   "deleted_ids": [
     "founder-6b6lvm0su",
     "founder-krvje1dcx",
-    "founder-6zvue9fw0"
+    "founder-6zvue9fw0",
+    "founder-q282qpcr0",
+    "founder-ue1dz9qys",
+    "founder-wa6xoimnx",
+    "founder-7nnnn6oor",
+    "founder-k52hc4jz3",
+    "founder-kg8svwcvo",
+    "founder-xrah7hy4v",
+    "founder-ssz7wghcu",
+    "founder-s2jl8ipfn",
+    "founder-9125hcgf3",
+    "founder-7bdac5wea",
+    "founder-eoekndrj6"
   ]
 }

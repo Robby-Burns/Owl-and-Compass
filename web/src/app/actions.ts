@@ -223,9 +223,10 @@ function saveMockDb(data: {
 }
 
 // HTML Entity Escaper to strictly prevent stored XSS attacks
-function escapeHtml(str: string): string {
-  if (!str) return "";
-  return str
+export function escapeHtml(str: any): string {
+  if (str === null || str === undefined) return "";
+  const s = typeof str === "string" ? str : String(str);
+  return s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -236,10 +237,17 @@ function escapeHtml(str: string): string {
 }
 
 // Input sanitization rule to prevent script injection or database syntax exploits
-function sanitizeString(str: string, maxLength: number): string {
-  if (!str) return "";
+export function sanitizeString(str: any, maxLength: number): string {
+  if (str === null || str === undefined) return "";
+  let s: string;
+  if (Array.isArray(str)) {
+    s = str.map(item => typeof item === "string" ? item : String(item)).join(", ");
+  } else {
+    s = typeof str === "string" ? str : String(str);
+  }
+  if (!s) return "";
   // Strip common SQL comment sequences first
-  let clean = str.replace(/--/g, "").replace(/;/g, "");
+  let clean = s.replace(/--/g, "").replace(/;/g, "");
   // Escape HTML entities to neutralize all tag rendering entirely
   clean = escapeHtml(clean);
   // Limit character length to prevent buffer overloads
