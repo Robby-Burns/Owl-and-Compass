@@ -573,7 +573,7 @@ export async function generatePrepBrief(founderId: string): Promise<PrepBrief> {
             {
               role: "system",
               content:
-                "You are an expert venture research analyst. Produce JSON output with keys: observations (array of objects with observation, hypothesis, evidence_urls), suggested_questions (array of strings), ways_to_be_helpful (array of strings), linkedin_draft (string), email_draft (string).",
+                "You are a relationship-first venture research analyst. Your role is to help someone connect deeply with a founder — not to schedule time, but to invite the founder to share. Produce JSON with keys: observations (array of objects: observation, hypothesis, evidence_urls), suggested_questions (array of 3 strings — each must open by noting something specific the founder has already done or built, then ask one curious follow-up to invite them to share; never ask to schedule a meeting), ways_to_be_helpful (array of strings — listening and connecting, not pitching), linkedin_draft (string — opens with what they've built, never a scheduling ask), email_draft (string — same principle; subject line names their work, not a request for time).",
             },
             {
               role: "user",
@@ -623,29 +623,37 @@ export async function generatePrepBrief(founderId: string): Promise<PrepBrief> {
     evidence_urls: [`https://linkedin.com/in/${encodeURIComponent(founderName.toLowerCase().replace(/ /g, "-"))}`],
   };
 
+  // Build context-aware questions that acknowledge what they've done and invite sharing
+  const recentTouchpointContext = touchpoints.length > 0
+    ? `you shared about ${touchpoints[0].source_type}: "${touchpoints[0].content.slice(0, 80)}"`
+    : `you've been building ${companyName} around ${bio.slice(0, 80)}`;
+
+  const primaryTech = techStack.split(",")[0]?.trim() || "your core stack";
+
   const suggestedQuestions = [
-    `What are the primary technical bottlenecks ${companyName} is facing at the ${stage} stage?`,
-    `How are you leveraging ${techStack.split(",")[0] || "your stack"} for performance optimization in ${industry}?`,
-    `What design partner feedback has most influenced your recent product roadmap?`
+    `I noticed ${recentTouchpointContext} — what's been the hardest part of that so far?`,
+    `You've chosen ${primaryTech} as a foundation at the ${stage} stage — what's surprised you most about that decision in practice?`,
+    `What's something ${companyName} has learned in ${industry} that you wish more people in the space understood?`
   ];
 
   const waysToBeHelpful = [
-    `Connect ${founderName} with domain experts in ${industry}.`,
-    `Share benchmark analysis and architecture optimization guides for ${techStack.split(",")[0] || "scaling"}.`,
-    `Offer early feedback on ${companyName}'s developer experience and API design.`
+    `Introduce ${founderName} to other ${industry} founders navigating the same ${stage} challenges.`,
+    `Share relevant benchmarks or case studies on ${primaryTech} at scale — without assumptions about their stack choices.`,
+    `Be a sounding board for ${companyName}'s hardest open decisions — listen first, share resources second.`
   ];
 
-  const combinedLinkedIn = `Hi ${founderName},\n\nI've been following ${companyName}'s work in ${industry} and was really impressed by your approach with ${techStack}. Would love to connect and hear how things are progressing at ${stage}!`;
-  const combinedEmail = `Subject: ${companyName} / ${industry} architecture & scaling\n\nHi ${founderName},\n\nI came across ${companyName} and your focus on ${bio.slice(0, 80)}. Given your tech stack with ${techStack}, I'd love to share some metrics and benchmarks from our engineering team.\n\nLet me know if you'd be open to a brief chat next week.\n\nBest regards,`;
+  // Outreach that opens with what they've done, not a scheduling ask
+  const combinedLinkedIn = `Hi ${founderName},\n\nSaw that ${companyName} is tackling ${bio.slice(0, 80)}. That's a genuinely hard problem in ${industry} — curious what friction you're running into most right now.`;
+  const combinedEmail = `Subject: What you're building at ${companyName}\n\nHi ${founderName},\n\nI've been following ${companyName}'s work in ${industry} — specifically how you're approaching ${primaryTech}. I'd love to hear what's been the biggest surprise in the build so far.\n\nNo agenda — just genuinely curious about what you're learning.\n\nBest,`;
 
-  const robayLinkedIn = `Hi ${founderName},\n\nI noticed your recent public work with ${companyName} and was deeply curious—what inspired your core architecture choices around ${techStack.split(",")[0] || "your technology stack"}? Would love to connect and learn more about your journey!`;
-  const robayEmail = `Subject: Curious about your work at ${companyName}\n\nHi ${founderName},\n\nI've been tracking ${companyName}'s growth in ${industry}. I'd love to ask a couple of quick questions about how you navigated early product decisions with ${techStack}.\n\nAlways excited to build genuine relationships with engineers building in this space.\n\nBest,`;
+  const robayLinkedIn = `Hi ${founderName},\n\nI came across ${companyName}'s work in ${industry} and was struck by your approach to ${bio.slice(0, 70)}. What drew you down that particular path?`;
+  const robayEmail = `Subject: Your journey building ${companyName}\n\nHi ${founderName},\n\nSomething about how ${companyName} is approaching ${industry} caught my attention — particularly your focus on ${bio.slice(0, 70)}.\n\nWhat part of the journey has shaped your thinking the most?\n\nBest,`;
 
-  const painpointLinkedIn = `Hi ${founderName},\n\nFounders in ${industry} often run into huge bottlenecks around ${techStack.split(",")[0] || "system performance"} when scaling at the ${stage} stage. How are you and ${companyName} currently handling those challenges?`;
-  const painpointEmail = `Subject: ${companyName} scaling bottlenecks in ${industry}\n\nHi ${founderName},\n\nWe've been seeing a lot of teams struggle with performance and reliability when building on ${techStack}. I'm really keen to discover what friction points ${companyName} is encountering right now, rather than making assumptions.\n\nWould love to swap notes on what's working and what isn't.\n\nBest,`;
+  const painpointLinkedIn = `Hi ${founderName},\n\nBuilding on ${primaryTech} in ${industry} at the ${stage} stage surfaces some really specific pain — what's the one thing ${companyName} keeps running into that's harder than it should be?`;
+  const painpointEmail = `Subject: The hard parts of building ${companyName}\n\nHi ${founderName},\n\nI'm curious about the friction inside ${companyName} right now. Not the polished narrative — the stuff that's still messy. What's the one problem you're most fixated on solving in ${industry}?\n\nI'd genuinely love to hear it.\n\nBest,`;
 
-  const vossLinkedIn = `Hi ${founderName},\n\nIt seems like scaling ${companyName} in ${industry} comes with tough trade-offs around ${techStack.split(",")[0] || "architecture"}. What has been the hardest part about balancing feature speed vs technical depth?`;
-  const vossEmail = `Subject: It seems like ${companyName} is tackling hard trade-offs...\n\nHi ${founderName},\n\nIt seems like building ${companyName} at the ${stage} stage requires balancing high technical ambition with tight team focus. How do you decide which architectural bottlenecks to prioritize first?\n\nWould be grateful to hear your perspective if you have 10 minutes next week.\n\nBest,`;
+  const vossLinkedIn = `Hi ${founderName},\n\nIt seems like ${companyName} is navigating some real trade-offs in ${industry} — ${primaryTech} at the ${stage} stage is a bold set of bets. What's been the trade-off you've had to live with the most?`;
+  const vossEmail = `Subject: The trade-offs inside ${companyName}\n\nHi ${founderName},\n\nIt seems like ${companyName} is making some deliberate bets in ${industry} — and I imagine those come with real costs. What's the hardest thing you've had to let go of to stay focused?\n\nAlways interested in how founders think through that.\n\nBest,`;
 
   const methodology_drafts = {
     combined: {
@@ -773,43 +781,108 @@ export async function discoverCandidates(criteria: {
     process.env.GROQ_API_KEY ||
     "";
 
-  // Try Playwright Python search (uses free DuckDuckGo crawling + LLM extraction)
+  // Native Node.js web search via DuckDuckGo HTML + LLM extraction
+  // (No Python/Playwright subprocess — works reliably in any environment)
   if (apiKey) {
     try {
-      const pythonBin = getPythonExecutable();
-      const scriptPath = getPlaywrightSearchScript();
       const searchQuery = [query, industry, techStack].filter(Boolean).join(" ");
-      
+
       if (searchQuery.trim().length > 0) {
-        const ddgQuery = `site:linkedin.com/in/ "founder" ${searchQuery}`;
-        const env = {
-          ...process.env,
-          LLM_API_KEY: apiKey,
-        };
-        
-        const { stdout, stderr } = await execAsync(`"${pythonBin}" "${scriptPath}" "${ddgQuery.replace(/"/g, '\\"')}"`, { env, timeout: 35000 });
-        if (stderr && stderr.trim()) console.warn("playwright_search stderr:", stderr.slice(0, 500));
-        
-        if (stdout && stdout.trim()) {
-          const parsed = JSON.parse(stdout);
-          if (parsed && Array.isArray(parsed.candidates) && parsed.candidates.length > 0) {
-            return parsed.candidates.map((c: any, index: number) => ({
-              id: `real-${index}-${Date.now()}`,
-              full_name: sanitizeString(c.full_name, 100),
-              company_name: sanitizeString(c.company_name, 100),
-              company_stage: sanitizeString(c.company_stage || stage || "Unknown", 50),
-              industry: sanitizeString(c.industry || industry || "Technology", 100),
-              bio: sanitizeString(c.bio || "", 500),
-              company_description: sanitizeString(c.company_description || "", 1000),
-              tech_stack: sanitizeString(c.tech_stack || techStack || "", 200),
-              is_mock: false,
-              created_at: new Date().toISOString(),
-            }));
+        const ddgQuery = `"founder" ${searchQuery} startup`;
+        const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(ddgQuery)}`;
+
+        const ddgRes = await fetch(ddgUrl, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml",
+            "Accept-Language": "en-US,en;q=0.9",
+          },
+          signal: AbortSignal.timeout(15000),
+        });
+
+        if (ddgRes.ok) {
+          const html = await ddgRes.text();
+
+          // Extract result snippets from DDG HTML using simple regex (no DOM parser needed)
+          const snippetMatches = [...html.matchAll(/<a[^>]+class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/a>/gi)];
+          const titleMatches = [...html.matchAll(/<a[^>]+class="[^"]*result__a[^"]*"[^>]*>([\s\S]*?)<\/a>/gi)];
+
+          const results: Array<{ title: string; snippet: string }> = [];
+          for (let i = 0; i < Math.min(6, titleMatches.length); i++) {
+            const title = (titleMatches[i]?.[1] || "").replace(/<[^>]+>/g, "").trim();
+            const snippet = (snippetMatches[i]?.[1] || "").replace(/<[^>]+>/g, "").trim();
+            if (title || snippet) results.push({ title, snippet });
+          }
+
+          if (results.length > 0) {
+            // Resolve LLM endpoint
+            const model =
+              process.env.LLM_MODEL ||
+              (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
+                ? "gemini-2.0-flash"
+                : process.env.OPENROUTER_API_KEY
+                ? "anthropic/claude-3.5-sonnet"
+                : "gpt-4o");
+
+            let baseUrl = process.env.LLM_BASE_URL;
+            if (!baseUrl) {
+              if (process.env.OPENROUTER_API_KEY || model.includes("/")) {
+                baseUrl = "https://openrouter.ai/api/v1";
+              } else if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || model.startsWith("gemini")) {
+                baseUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
+              } else if (process.env.GROQ_API_KEY || model.startsWith("llama")) {
+                baseUrl = "https://api.groq.com/openai/v1";
+              } else {
+                baseUrl = "https://api.openai.com/v1";
+              }
+            }
+
+            const userPrompt = "Web Search Results:\n\n" + results.map(r => `Title: ${r.title}\nSnippet: ${r.snippet}`).join("\n\n");
+
+            const llmRes = await fetch(`${baseUrl.replace(/\/+$/, "")}/chat/completions`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model,
+                messages: [
+                  {
+                    role: "system",
+                    content:
+                      "You are a venture research assistant. Extract real startup founders and companies from web search results. Return a JSON object with a 'candidates' array. Each candidate: { full_name, company_name, company_stage, industry, bio, company_description, tech_stack }. ONLY extract real people found in the results — never hallucinate names.",
+                  },
+                  { role: "user", content: userPrompt },
+                ],
+                response_format: { type: "json_object" },
+              }),
+              signal: AbortSignal.timeout(20000),
+            });
+
+            if (llmRes.ok) {
+              const llmJson = await llmRes.json();
+              const parsed = JSON.parse(llmJson.choices[0].message.content);
+              if (parsed && Array.isArray(parsed.candidates) && parsed.candidates.length > 0) {
+                return parsed.candidates.map((c: any, index: number) => ({
+                  id: `real-${index}-${Date.now()}`,
+                  full_name: sanitizeString(c.full_name, 100),
+                  company_name: sanitizeString(c.company_name, 100),
+                  company_stage: sanitizeString(c.company_stage || stage || "Unknown", 50),
+                  industry: sanitizeString(c.industry || industry || "Technology", 100),
+                  bio: sanitizeString(c.bio || "", 500),
+                  company_description: sanitizeString(c.company_description || "", 1000),
+                  tech_stack: sanitizeString(c.tech_stack || techStack || "", 200),
+                  is_mock: false,
+                  created_at: new Date().toISOString(),
+                }));
+              }
+            }
           }
         }
       }
     } catch (e: any) {
-      console.warn("Failed to fetch real candidates via Python Playwright search, falling back to mock:", e.message || e);
+      console.warn("Web search fallback to mock — DDG/LLM fetch failed:", e.message || e);
     }
   }
 
