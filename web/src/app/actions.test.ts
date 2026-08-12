@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert";
 import {
   createFounder,
+  updateFounder,
   saveTouchpoint,
   getFounders,
   getFounderDetails,
@@ -250,5 +251,55 @@ test("Next.js Server Actions integration suite", async (t) => {
     assert.strictEqual(sanitizeString(["Go", null, 42], 50), "Go, null, 42");
     assert.strictEqual(sanitizeString({ foo: "bar" }, 50), "[object Object]");
     assert.strictEqual(sanitizeString("SELECT * FROM users; -- comment", 100), "SELECT * FROM users  comment");
+  });
+
+  await t.test("should support updateFounder and handle verified/unverified statuses", async () => {
+    // 1. Create founder without email and linkedin
+    const tempFounder = await createFounder({
+      fullName: "Test Verification Founder",
+      companyName: "VerifyInc",
+      companyStage: "Seed",
+      industry: "Verification",
+      bio: "Checking verification states.",
+    });
+
+    assert.ok(tempFounder);
+    // Auto-generated details must be marked as unverified
+    assert.strictEqual(tempFounder.email, "test.verification@verifyinc.com");
+    assert.strictEqual(tempFounder.email_verified, false);
+    assert.strictEqual(tempFounder.linkedin_verified, false);
+
+    // 2. Create founder with user-provided email and linkedin -> should be verified
+    const verifiedFounder = await createFounder({
+      fullName: "User Input Founder",
+      companyName: "InputCo",
+      companyStage: "Seed",
+      industry: "Manual",
+      bio: "Manual bio",
+      email: "manual@inputco.com",
+      linkedinUrl: "https://linkedin.com/in/manual-input",
+    });
+
+    assert.ok(verifiedFounder);
+    assert.strictEqual(verifiedFounder.email, "manual@inputco.com");
+    assert.strictEqual(verifiedFounder.email_verified, true);
+    assert.strictEqual(verifiedFounder.linkedin_url, "https://linkedin.com/in/manual-input");
+    assert.strictEqual(verifiedFounder.linkedin_verified, true);
+
+    // 3. Update existing founder details and check if verification flag flips to true
+    const updated = await updateFounder(tempFounder.id, {
+      email: "verified@verifyinc.com",
+      linkedin_url: "https://linkedin.com/in/verified-profile",
+    });
+
+    assert.ok(updated);
+    assert.strictEqual(updated.email, "verified@verifyinc.com");
+    assert.strictEqual(updated.email_verified, true);
+    assert.strictEqual(updated.linkedin_url, "https://linkedin.com/in/verified-profile");
+    assert.strictEqual(updated.linkedin_verified, true);
+
+    // Clean up
+    await deleteFounder(tempFounder.id);
+    await deleteFounder(verifiedFounder.id);
   });
 });

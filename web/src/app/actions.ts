@@ -27,6 +27,10 @@ export interface Founder {
   industry: string;
   bio: string;
   tech_stack?: string;
+  email?: string;
+  email_verified?: boolean;
+  linkedin_url?: string;
+  linkedin_verified?: boolean;
   is_mock?: boolean;
   created_at: string;
 }
@@ -178,6 +182,10 @@ function getMockDb(): {
         industry: "Developer Tools",
         bio: "Developing open-source agent evaluation and testing frameworks.",
         tech_stack: "TypeScript, Python, FastAPI",
+        email: "maya.lin@compasslabs.com",
+        email_verified: false,
+        linkedin_url: "https://linkedin.com/in/maya-lin",
+        linkedin_verified: false,
         created_at: new Date().toISOString(),
       },
       {
@@ -189,6 +197,10 @@ function getMockDb(): {
         industry: "Developer Infrastructure",
         bio: "Building RRF search engines and pgvector index optimizations.",
         tech_stack: "Rust, PostgreSQL, Go",
+        email: "alex.chen@owlsearch.com",
+        email_verified: false,
+        linkedin_url: "https://linkedin.com/in/alex-chen",
+        linkedin_verified: false,
         created_at: new Date().toISOString(),
       }
     ],
@@ -223,7 +235,27 @@ function saveMockDb(data: {
   }
 }
 
-
+function ensureContactFields(founder: Founder): Founder {
+  const updated = { ...founder };
+  if (!updated.email) {
+    const companyClean = updated.company_name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const nameParts = updated.full_name.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/);
+    const firstName = nameParts[0] || "founder";
+    const lastName = nameParts[1] ? `.${nameParts[1]}` : "";
+    updated.email = `${firstName}${lastName}@${companyClean || "company"}.com`;
+    updated.email_verified = false;
+  } else if (updated.email_verified === undefined) {
+    updated.email_verified = true;
+  }
+  if (!updated.linkedin_url) {
+    const nameClean = updated.full_name.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, "-");
+    updated.linkedin_url = `https://linkedin.com/in/${nameClean || "candidate"}`;
+    updated.linkedin_verified = false;
+  } else if (updated.linkedin_verified === undefined) {
+    updated.linkedin_verified = true;
+  }
+  return updated;
+}
 
 export async function getFounders(): Promise<Founder[]> {
   checkRateLimit("getFounders", 60, 10000);
@@ -263,7 +295,7 @@ export async function getFounders(): Promise<Founder[]> {
 
   // Filter out any IDs explicitly marked as deleted
   const finalFounders = allFounders.filter((f) => !deletedIds.includes(f.id));
-  return finalFounders;
+  return finalFounders.map(ensureContactFields);
 }
 
 export async function getFounderDetails(founderId: string): Promise<{
@@ -281,7 +313,11 @@ export async function getFounderDetails(founderId: string): Promise<{
       const founder = db.founders.find((f) => f.id === cleanId) || null;
       const touchpoints = db.touchpoints.filter((t) => t.founder_id === cleanId);
       const timelineEvents = db.timelineEvents.filter((te) => te.founder_id === cleanId);
-      return { founder, touchpoints, timelineEvents };
+      return {
+        founder: founder ? ensureContactFields(founder) : null,
+        touchpoints,
+        timelineEvents,
+      };
     } finally {
       release();
     }
@@ -301,7 +337,11 @@ export async function getFounderDetails(founderId: string): Promise<{
       const founder = db.founders.find((f) => f.id === cleanId) || null;
       const touchpoints = db.touchpoints.filter((t) => t.founder_id === cleanId);
       const timelineEvents = db.timelineEvents.filter((te) => te.founder_id === cleanId);
-      return { founder, touchpoints, timelineEvents };
+      return {
+        founder: founder ? ensureContactFields(founder) : null,
+        touchpoints,
+        timelineEvents,
+      };
     } finally {
       release();
     }
@@ -320,7 +360,7 @@ export async function getFounderDetails(founderId: string): Promise<{
     .order("occurred_at", { ascending: false });
 
   return {
-    founder,
+    founder: founder ? ensureContactFields(founder) : null,
     touchpoints: touchpoints || [],
     timelineEvents: timelineEvents || [],
   };
@@ -334,6 +374,8 @@ export async function createFounder(formData: {
   industry: string;
   techStack?: string;
   bio: string;
+  email?: string;
+  linkedinUrl?: string;
 }): Promise<Founder | null> {
   checkRateLimit("createFounder", 15, 10000);
 
@@ -345,12 +387,36 @@ export async function createFounder(formData: {
   const industry = sanitizeString(formData.industry || "Technology", 100);
   const techStack = formData.techStack ? sanitizeString(formData.techStack, 200) : "";
   const bio = sanitizeString(formData.bio || "", 1000);
+  const emailVal = formData.email ? sanitizeString(formData.email, 150) : "";
+  const linkedinUrlVal = formData.linkedinUrl ? sanitizeString(formData.linkedinUrl, 250).replace(/&#x2F;/g, "/") : "";
 
   if (fullName.length < 2) {
     throw new Error("Full name must be at least 2 characters.");
   }
   if (companyName.length < 1) {
     throw new Error("Company name must be at least 1 character.");
+  }
+
+  // Determine email and LinkedIn URL and verification statuses
+  let email = emailVal || undefined;
+  let email_verified = emailVal ? true : false;
+  let linkedin_url = linkedinUrlVal || undefined;
+  let linkedin_verified = linkedinUrlVal ? true : false;
+
+  // Auto-generate unverified guessed details if not provided by user
+  if (!email) {
+    const companyClean = companyName.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const nameParts = fullName.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/);
+    const firstName = nameParts[0] || "founder";
+    const lastName = nameParts[1] ? `.${nameParts[1]}` : "";
+    email = `${firstName}${lastName}@${companyClean || "company"}.com`;
+    email_verified = false;
+  }
+
+  if (!linkedin_url) {
+    const nameClean = fullName.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, "-");
+    linkedin_url = `https://linkedin.com/in/${nameClean || "candidate"}`;
+    linkedin_verified = false;
   }
 
   const newFounderData = {
@@ -361,6 +427,10 @@ export async function createFounder(formData: {
     industry: industry || "Technology",
     tech_stack: techStack,
     bio: bio,
+    email,
+    email_verified,
+    linkedin_url,
+    linkedin_verified,
   };
 
   let createdFounder: Founder | null = null;
@@ -407,7 +477,74 @@ export async function createFounder(formData: {
   }
 
   tryRevalidatePath("/");
-  return createdFounder;
+  return ensureContactFields(createdFounder);
+}
+
+export async function updateFounder(
+  founderId: string,
+  updates: {
+    email?: string;
+    email_verified?: boolean;
+    linkedin_url?: string;
+    linkedin_verified?: boolean;
+  }
+): Promise<Founder | null> {
+  checkRateLimit("updateFounder", 30, 10000);
+  const cleanId = sanitizeString(founderId, 100);
+
+  if (!cleanId) return null;
+
+  // Build sanitized updates object
+  const cleanUpdates: Partial<Founder> = {};
+  if (updates.email !== undefined) {
+    cleanUpdates.email = sanitizeString(updates.email, 150);
+    cleanUpdates.email_verified = updates.email_verified !== undefined ? updates.email_verified : true;
+  }
+  if (updates.linkedin_url !== undefined) {
+    cleanUpdates.linkedin_url = sanitizeString(updates.linkedin_url, 250).replace(/&#x2F;/g, "/");
+    cleanUpdates.linkedin_verified = updates.linkedin_verified !== undefined ? updates.linkedin_verified : true;
+  }
+
+  let updatedFounder: Founder | null = null;
+
+  if (!isMocked) {
+    try {
+      const { data, error } = await supabase
+        .from("founders")
+        .update(cleanUpdates)
+        .eq("id", cleanId)
+        .select()
+        .single();
+
+      if (!error && data) {
+        updatedFounder = data;
+      }
+    } catch (e) {
+      console.error("Supabase update notice:", e);
+    }
+  }
+
+  // Update mock db
+  const release = await dbLock.acquire();
+  try {
+    const db = getMockDb();
+    const index = db.founders.findIndex((f) => f.id === cleanId);
+    if (index !== -1) {
+      db.founders[index] = {
+        ...db.founders[index],
+        ...cleanUpdates,
+      };
+      if (!updatedFounder) {
+        updatedFounder = db.founders[index];
+      }
+      saveMockDb(db);
+    }
+  } finally {
+    release();
+  }
+
+  tryRevalidatePath("/");
+  return updatedFounder ? ensureContactFields(updatedFounder) : null;
 }
 
 export async function saveTouchpoint(formData: {

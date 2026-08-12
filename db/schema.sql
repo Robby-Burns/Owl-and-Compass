@@ -11,6 +11,10 @@ CREATE TABLE IF NOT EXISTS founders (
     company_stage TEXT,
     industry TEXT,
     bio TEXT,
+    email TEXT,
+    email_verified BOOLEAN DEFAULT FALSE,
+    linkedin_url TEXT,
+    linkedin_verified BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

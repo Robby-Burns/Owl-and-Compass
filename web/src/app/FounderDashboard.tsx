@@ -29,7 +29,10 @@ import {
   GitCommit,
   CheckCircle2,
   Clock,
-  Circle
+  Circle,
+  ShieldCheck,
+  ShieldAlert,
+  Edit2
 } from "lucide-react";
 import {
   Founder,
@@ -40,6 +43,7 @@ import {
   PatternCard,
   TimelineStageNode,
   createFounder,
+  updateFounder,
   saveTouchpoint,
   getFounderDetails,
   generatePrepBrief,
@@ -124,12 +128,20 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
     industry: "",
     techStack: "",
     bio: "",
+    email: "",
+    linkedinUrl: "",
   });
 
   const [newTouchpointData, setNewTouchpointData] = useState({
     content: "",
     sourceType: "note",
   });
+
+  // Inline edit states for selected founder contact details
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [editingLinkedin, setEditingLinkedin] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [linkedinInput, setLinkedinInput] = useState("");
 
   const [isPending, startTransition] = useTransition();
   const [loadingBrief, setLoadingBrief] = useState(false);
@@ -146,6 +158,12 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
       const details = await getFounderDetails(id);
       if (details) {
         setSelectedFounder(details.founder);
+        if (details.founder) {
+          setEmailInput(details.founder.email || "");
+          setLinkedinInput(details.founder.linkedin_url || "");
+        }
+        setEditingEmail(false);
+        setEditingLinkedin(false);
         setTouchpoints(details.touchpoints);
         setTimelineEvents(details.timelineEvents);
         setPrepBrief(null);
@@ -156,6 +174,40 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
       console.error(err);
     } finally {
       setLoadingDetails(false);
+    }
+  };
+
+  const handleSaveEmail = async () => {
+    if (!selectedFounder) return;
+    try {
+      const updated = await updateFounder(selectedFounder.id, {
+        email: emailInput,
+        email_verified: true,
+      });
+      if (updated) {
+        setSelectedFounder(updated);
+        setFounders(founders.map((f) => (f.id === updated.id ? updated : f)));
+      }
+      setEditingEmail(false);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleSaveLinkedin = async () => {
+    if (!selectedFounder) return;
+    try {
+      const updated = await updateFounder(selectedFounder.id, {
+        linkedin_url: linkedinInput,
+        linkedin_verified: true,
+      });
+      if (updated) {
+        setSelectedFounder(updated);
+        setFounders(founders.map((f) => (f.id === updated.id ? updated : f)));
+      }
+      setEditingLinkedin(false);
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -227,6 +279,8 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
             industry: "",
             techStack: "",
             bio: "",
+            email: "",
+            linkedinUrl: "",
           });
           handleSelectFounder(created.id);
         }
@@ -384,10 +438,7 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
               <h1 className="text-lg font-extrabold tracking-tight text-white gold-gradient-text">THE OWL & COMPASS</h1>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-[11px] text-amber-200/80 font-medium">Founder Intelligence System</span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-extrabold px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/30">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Live Production Mode
-                </span>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse border border-emerald-500/30 shadow-md shadow-emerald-500/20" title="System Live" />
               </div>
             </div>
 
@@ -937,6 +988,143 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                   <p className="text-lg text-amber-200/90 font-medium">{selectedFounder?.company_name}</p>
                   <p className="text-sm text-amber-100/80 max-w-2xl">{selectedFounder?.bio}</p>
 
+                  {/* Contact Information & Verification Badges */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-6 mt-4 p-4 rounded-xl bg-[#1D2228]/60 border border-[#C69C35]/15 max-w-2xl text-xs">
+                    {/* Email Field */}
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center gap-1.5 text-amber-200/80 font-extrabold uppercase tracking-wider text-[10px]">
+                        <Mail className="w-3.5 h-3.5 text-[#C69C35]" />
+                        Email Address
+                      </div>
+                      
+                      {editingEmail ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <input
+                            type="email"
+                            value={emailInput}
+                            onChange={(e) => setEmailInput(e.target.value)}
+                            className="bg-[#1D2228] border border-[#C69C35]/40 rounded px-2 py-1 text-amber-100 focus:outline-none text-xs flex-1"
+                            placeholder="email@example.com"
+                          />
+                          <button
+                            onClick={handleSaveEmail}
+                            className="px-2 py-1 bg-[#C69C35] hover:bg-[#D6AC45] text-[#1D2228] rounded font-bold cursor-pointer transition-all text-[11px]"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingEmail(false);
+                              setEmailInput(selectedFounder?.email || "");
+                            }}
+                            className="px-2 py-1 bg-slate-800 text-slate-300 hover:text-white rounded cursor-pointer transition-all text-[11px]"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-2 mt-1 group bg-[#1D2228]/40 p-2 rounded-lg border border-[#C69C35]/5">
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <span className="text-amber-100 font-medium truncate">{selectedFounder?.email}</span>
+                            {selectedFounder?.email_verified ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 font-extrabold text-[9px] border border-emerald-500/30 shrink-0">
+                                <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                                Verified
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-400 font-extrabold text-[9px] border border-amber-500/30 shrink-0" title="Auto-generated / Unverified">
+                                <ShieldAlert className="w-3 h-3 text-amber-400" />
+                                Unverified
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => setEditingEmail(true)}
+                            className="p-1 text-slate-400 hover:text-[#C69C35] hover:bg-[#C69C35]/10 rounded transition-all cursor-pointer shrink-0"
+                            title="Edit Email (will verify)"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* LinkedIn Field */}
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center gap-1.5 text-amber-200/80 font-extrabold uppercase tracking-wider text-[10px]">
+                        <svg className="w-3.5 h-3.5 text-[#C69C35]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+                          <rect x="2" y="9" width="4" height="12" />
+                          <circle cx="4" cy="4" r="2" />
+                        </svg>
+                        LinkedIn Profile
+                      </div>
+
+                      {editingLinkedin ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <input
+                            type="url"
+                            value={linkedinInput}
+                            onChange={(e) => setLinkedinInput(e.target.value)}
+                            className="bg-[#1D2228] border border-[#C69C35]/40 rounded px-2 py-1 text-amber-100 focus:outline-none text-xs flex-1"
+                            placeholder="https://linkedin.com/in/username"
+                          />
+                          <button
+                            onClick={handleSaveLinkedin}
+                            className="px-2 py-1 bg-[#C69C35] hover:bg-[#D6AC45] text-[#1D2228] rounded font-bold cursor-pointer transition-all text-[11px]"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingLinkedin(false);
+                              setLinkedinInput(selectedFounder?.linkedin_url || "");
+                            }}
+                            className="px-2 py-1 bg-slate-800 text-slate-300 hover:text-white rounded cursor-pointer transition-all text-[11px]"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-2 mt-1 group bg-[#1D2228]/40 p-2 rounded-lg border border-[#C69C35]/5">
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            {selectedFounder?.linkedin_url ? (
+                              <a
+                                href={selectedFounder.linkedin_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#C69C35] hover:text-[#D6AC45] font-medium truncate flex items-center gap-1.5 transition-all text-xs"
+                              >
+                                View Profile
+                                <ExternalLink className="w-3 h-3 text-[#C69C35]/70" />
+                              </a>
+                            ) : (
+                              <span className="text-amber-100/50 italic font-medium">None</span>
+                            )}
+                            {selectedFounder?.linkedin_verified ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 font-extrabold text-[9px] border border-emerald-500/30 shrink-0">
+                                <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                                Verified
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-400 font-extrabold text-[9px] border border-amber-500/30 shrink-0" title="Auto-generated / Unverified">
+                                <ShieldAlert className="w-3 h-3 text-amber-400" />
+                                Unverified
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => setEditingLinkedin(true)}
+                            className="p-1 text-slate-400 hover:text-[#C69C35] hover:bg-[#C69C35]/10 rounded transition-all cursor-pointer shrink-0"
+                            title="Edit LinkedIn (will verify)"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Company & Product Brief Box */}
                   <div className="bg-[#1D2228] p-3.5 rounded-xl border border-[#C69C35]/30 space-y-1 mt-3 max-w-2xl">
                     <div className="flex items-center gap-1.5 text-xs font-extrabold text-[#C69C35] uppercase tracking-wider">
@@ -1431,6 +1619,29 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                   placeholder="e.g. Python, FastAPI, TypeScript, React"
                   className="w-full bg-[#1D2228] border border-[#C69C35]/30 rounded-xl p-2.5 text-sm text-amber-100 focus:outline-none focus:border-[#C69C35] transition-all"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-extrabold text-amber-200/80 uppercase tracking-wider">Email Address</label>
+                  <input
+                    type="email"
+                    value={newFounderData.email}
+                    onChange={(e) => setNewFounderData({ ...newFounderData, email: e.target.value })}
+                    placeholder="e.g. maya@compasslabs.com"
+                    className="w-full bg-[#1D2228] border border-[#C69C35]/30 rounded-xl p-2.5 text-sm text-amber-100 focus:outline-none focus:border-[#C69C35] transition-all"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-extrabold text-amber-200/80 uppercase tracking-wider">LinkedIn URL</label>
+                  <input
+                    type="url"
+                    value={newFounderData.linkedinUrl}
+                    onChange={(e) => setNewFounderData({ ...newFounderData, linkedinUrl: e.target.value })}
+                    placeholder="e.g. https://linkedin.com/in/mayalin"
+                    className="w-full bg-[#1D2228] border border-[#C69C35]/30 rounded-xl p-2.5 text-sm text-amber-100 focus:outline-none focus:border-[#C69C35] transition-all"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">
