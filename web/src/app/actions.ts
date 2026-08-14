@@ -556,62 +556,92 @@ export async function saveTouchpoint(formData: {
 
   const founderId = sanitizeString(formData.founderId, 100);
   const content = sanitizeString(formData.content, 50000);
-  const sourceType = sanitizeString(formData.sourceType, 50);
+  const sourceType = sanitizeString(formData.sourceType || "note", 50);
 
-  if (!content) {
+  if (!content || !content.trim()) {
     throw new Error("Touchpoint content cannot be empty.");
   }
 
-  const newTouchpoint = {
-    founder_id: founderId,
-    content: content,
-    source_type: sourceType,
-  };
+  const nowIso = new Date().toISOString();
+  let createdTouchpoint: Touchpoint | null = null;
 
-  if (isMocked) {
-    const release = await dbLock.acquire();
+  if (!isMocked) {
     try {
-      const db = getMockDb();
-      const created: Touchpoint = {
-        id: `touchpoint-${Math.random().toString(36).substr(2, 9)}`,
-        ...newTouchpoint,
-        created_at: new Date().toISOString(),
-      };
-      db.touchpoints.unshift(created);
+      const { data, error } = await supabase
+        .from("workspace_touchpoints")
+        .insert({
+          founder_id: founderId,
+          content: content,
+          source_type: sourceType,
+        })
+        .select()
+        .single();
 
-      // Auto-create a parsed timeline event from the touchpoint text simulation
-      const simulatedEvent: TimelineEvent = {
-        id: `event-${Math.random().toString(36).substr(2, 9)}`,
-        founder_id: founderId,
-        event_type: "meeting",
-        summary: `Logged ${sourceType} touchpoint: ${content.slice(0, 80)}...`,
-        open_loops: content.includes("promise") ? ["Review next steps promised in meeting"] : [],
-        promises: content.includes("follow up") ? ["Follow up on discussed topics"] : [],
-        occurred_at: new Date().toISOString(),
-      };
-      db.timelineEvents.unshift(simulatedEvent);
-      saveMockDb(db);
-
-      tryRevalidatePath("/");
-      return created;
-    } finally {
-      release();
+      if (!error && data) {
+        createdTouchpoint = data;
+      }
+    } catch (e) {
+      console.error("Supabase insert notice for touchpoint:", e);
     }
   }
 
-  const { data, error } = await supabase
-    .from("workspace_touchpoints")
-    .insert(newTouchpoint)
-    .select()
-    .single();
+  if (!createdTouchpoint) {
+    createdTouchpoint = {
+      id: `touchpoint-${Math.random().toString(36).substring(2, 11)}`,
+      founder_id: founderId,
+      content: content,
+      source_type: sourceType,
+      created_at: nowIso,
+    };
+  }
 
-  if (error) {
-    console.error("Error saving touchpoint:", error);
-    return null;
+  // Auto-create a parsed timeline event from the touchpoint text simulation
+  const hasPromise = content.toLowerCase().includes("promise") || content.toLowerCase().includes("committed") || content.toLowerCase().includes("will send");
+  const hasFollowUp = content.toLowerCase().includes("follow up") || content.toLowerCase().includes("review") || content.toLowerCase().includes("next step");
+
+  const simulatedEvent: TimelineEvent = {
+    id: `event-${Math.random().toString(36).substring(2, 11)}`,
+    founder_id: founderId,
+    event_type: sourceType === "transcript" ? "meeting" : (sourceType === "email" || sourceType === "linkedin") ? "outreach" : "interaction",
+    summary: `Logged ${sourceType} touchpoint: ${content.slice(0, 80)}${content.length > 80 ? "..." : ""}`,
+    open_loops: hasFollowUp ? ["Follow up on discussed topics"] : [],
+    promises: hasPromise ? ["Review next steps promised in meeting"] : [],
+    occurred_at: nowIso,
+  };
+
+  if (!isMocked) {
+    try {
+      await supabase.from("founder_timeline_events").insert({
+        founder_id: founderId,
+        event_type: simulatedEvent.event_type,
+        summary: simulatedEvent.summary,
+        open_loops: simulatedEvent.open_loops,
+        promises: simulatedEvent.promises,
+        occurred_at: nowIso,
+      });
+    } catch (e) {
+      // Supabase timeline event insert notice
+    }
+  }
+
+  const release = await dbLock.acquire();
+  try {
+    const db = getMockDb();
+    if (!db.touchpoints) {
+      db.touchpoints = [];
+    }
+    if (!db.timelineEvents) {
+      db.timelineEvents = [];
+    }
+    db.touchpoints.unshift(createdTouchpoint);
+    db.timelineEvents.unshift(simulatedEvent);
+    saveMockDb(db);
+  } finally {
+    release();
   }
 
   tryRevalidatePath("/");
-  return data;
+  return createdTouchpoint;
 }
 
 export async function generatePrepBrief(founderId: string): Promise<PrepBrief> {

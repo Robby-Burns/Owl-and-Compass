@@ -292,25 +292,33 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
 
   const handleSaveTouchpoint = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFounderId || !newTouchpointData.content) return;
+    if (!selectedFounderId || !newTouchpointData.content.trim()) return;
 
     startTransition(async () => {
       try {
         const created = await saveTouchpoint({
           founderId: selectedFounderId,
-          content: newTouchpointData.content,
+          content: newTouchpointData.content.trim(),
           sourceType: newTouchpointData.sourceType,
         });
 
         if (created) {
-          setNewTouchpointData({ ...newTouchpointData, content: "" });
-          // Re-fetch details to sync timeline
-          const details = await getFounderDetails(selectedFounderId);
-          setTouchpoints(details.touchpoints);
-          setTimelineEvents(details.timelineEvents);
+          setNewTouchpointData({ content: "", sourceType: "note" });
+          // Re-fetch details and 5-stage timeline nodes to sync timeline graph
+          const [details, nodes] = await Promise.all([
+            getFounderDetails(selectedFounderId),
+            getFounderTimelineNodes(selectedFounderId),
+          ]);
+          if (details) {
+            setTouchpoints(details.touchpoints);
+            setTimelineEvents(details.timelineEvents);
+          }
+          if (nodes) {
+            setTimelineStageNodes(nodes);
+          }
         }
       } catch (err) {
-        console.error(err);
+        console.error("Failed to save touchpoint:", err);
       }
     });
   };
@@ -1290,6 +1298,48 @@ export default function FounderDashboard({ initialFounders }: FounderDashboardPr
                           {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Interaction Note"}
                         </button>
                       </form>
+                    </div>
+
+                    {/* Logged Interaction Notes */}
+                    <div className="glass-panel p-6 rounded-2xl space-y-4 border-[#C69C35]/30">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-[#C69C35]" />
+                          Logged Interaction Notes ({touchpoints.length})
+                        </h4>
+                      </div>
+
+                      {touchpoints.length === 0 ? (
+                        <p className="text-xs text-amber-200/60 py-2">
+                          No notes or messages logged yet for this founder.
+                        </p>
+                      ) : (
+                        <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                          {touchpoints.map((tp) => (
+                            <div
+                              key={tp.id}
+                              className="p-3 rounded-xl bg-[#1D2228]/80 border border-[#C69C35]/20 space-y-1.5"
+                            >
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="px-2 py-0.5 rounded bg-[#C69C35]/15 text-[#F5D77F] border border-[#C69C35]/30 font-semibold uppercase tracking-wider">
+                                  {tp.source_type}
+                                </span>
+                                <span className="text-amber-200/60">
+                                  {new Date(tp.created_at).toLocaleDateString(undefined, {
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                              </div>
+                              <p className="text-xs text-amber-100/90 whitespace-pre-wrap leading-relaxed">
+                                {tp.content}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
